@@ -1,10 +1,17 @@
 <script setup>
 import { useRouter } from 'vue-router';
 import { getAuthToken } from "@/utils/checkAuthenticated";
+import { ref, onMounted, defineEmits } from 'vue';
+
 
 const auth = ref("")
 const route = useRouter()
 
+const emit = defineEmits(['menuToggle']);
+
+const toggleMenu = () => {
+    emit('menuToggle');
+};
 
 onMounted(async () =>{
     auth.value = await getAuthToken("tokenDokon")
@@ -17,7 +24,7 @@ onMounted(async () =>{
 <template>
     <header class="flex justify-between items-center px-4 py-2 shadow-lg">
         <div class="flex items-center text-3xl gap-x-4 text-white font-bold">
-            <button type="button" class="bg-none cursor-pointer active:shadow-md rounded-lg px-2 py-2" >
+            <button @click="toggleMenu" type="button" class="bg-none cursor-pointer active:shadow-md rounded-lg px-2 py-2" >
                 <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="white" class="bi bi-list" viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/>
                 </svg>
@@ -32,7 +39,7 @@ onMounted(async () =>{
 <style scoped>
 header{
     background-color: #30ccf3;
-    box-shadow: 0 2px 15px rgba(48, 204, 243, 0.6); /* Soft shadow matching header color */
+    z-index: 1000;
 }
 .profile_image{
     width: 42px;
