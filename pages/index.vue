@@ -1,5 +1,5 @@
 <script setup>
-const menuStatus = ref(false)
+const menuStatus = ref(true)
 
 const toggleMenu = () =>{
     menuStatus.value = !menuStatus.value
@@ -15,7 +15,10 @@ const logout = () =>{
         <div class="menu flex-1">
             <Sidebar :menuStatus = "menuStatus"/>
         </div>
-        <div class="page_body w-full py-4 h-[calc(100vh-65px)]">
+        <div class="page_body w-full h-[calc(100vh-65px)]">
+            <div class="page_title text-2xl font-bold px-3 bg-white py-3">
+                Bosh sahifa
+            </div>
             <div class="card p-5">
                 <div class="user_full_name flex items-center gap-2">
                     <span class="icon">
@@ -96,6 +99,9 @@ const logout = () =>{
     border: 2px solid rgb(230, 230, 230);
     border-radius: 10px;
     margin: 100px auto;
+}
+.page_title{
+    border-bottom: 2px solid rgb(243, 239, 239);
 }
 .menut{
     padding: 8px 10px;

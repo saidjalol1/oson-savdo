@@ -22,7 +22,7 @@ onMounted(async () =>{
 
 </script>
 <template>
-    <header class="flex justify-between items-center px-4 py-2 shadow-lg">
+    <header class="flex justify-between items-center px-4 py-2">
         <div class="flex items-center text-3xl gap-x-4 text-white font-bold">
             <button @click="toggleMenu" type="button" class="bg-none cursor-pointer active:shadow-md rounded-lg px-2 py-2" >
                 <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="white" class="bi bi-list" viewBox="0 0 16 16">
@@ -39,7 +39,6 @@ onMounted(async () =>{
 <style scoped>
 header{
     background-color: #30ccf3;
-    z-index: 1000;
 }
 .profile_image{
     width: 42px;

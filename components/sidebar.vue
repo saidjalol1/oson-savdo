@@ -90,19 +90,41 @@ const menuItems = svgIcons.map((icon, index) => ({
   icon,
   title: menus[index] || "Untitled"
 }));
+
+const convertLetter = (text) => {
+    let title = text.toLowerCase().replace(/ /g, "_");
+
+    const routes = {
+        "bosh_sahifa": "/",
+        "ombor": "/store",
+        "sotuv": "/sale",
+        "xarid": "/purchase",
+        "nasiyador": "/debtors",
+        "hisobotlar": "/reports",
+        "hisobot_mahsulot_bo'yicha": "/product-reports",
+        "diagram": "/diagram",
+        "foydalanuvchilar": "/users",
+        "xarajatlar": "/expenses",
+        "kassa": "/cashbox",
+        "o'tkazmalar": "/transfers"
+    };
+
+    return routes[title] || title; // Return the matched route or the transformed text if not found
+};
+
 </script>
 <template>
     <div v-if="menuStatus" class="sidebar flex flex-col h-[calc(100vh-65px)] px-2 pt-3" >
-        <div class="item flex justify-start items-center gap-4 px-4" v-for="(item, index) in menuItems" :key="index">
+        <NuxtLink  active-class="active" class="item flex justify-start items-center gap-4 px-5 mt-2" v-for="(item, index) in menuItems" :to="convertLetter(item.title)" :key="index">
             <div class="icon" v-html="item.icon"></div>
             <div class="title" >{{ item.title }}</div>
-        </div>
+        </NuxtLink>
     </div>
 </template>
 <style scoped>
 .sidebar{
     width: 250px;
-
+    border-right: 2px solid rgb(243, 239, 239);
 }
 .title{
     font-weight: 500;
@@ -112,7 +134,10 @@ const menuItems = svgIcons.map((icon, index) => ({
     height: 50px;
     border-radius: 40px;
 }
-.item:hover{
+.active{
     background-color: #30ccf34b;
+}
+.item:hover{
+    background-color: rgb(241, 233, 233);
 }
 </style>
