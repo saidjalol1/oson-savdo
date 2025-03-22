@@ -1,13 +1,21 @@
 <script setup>
 const menuStatus = ref(true)
+const modal_status = ref(false)
+const menu2 = ref(false)
 
 const toggleMenu = () =>{
     menuStatus.value = !menuStatus.value
 }
-const logout = () =>{
-    localStorage.removeItem('tokenDokon')
-    window.location.reload()
+
+const closeModall = () =>{
+    modal_status.value = !modal_status.value
 }
+const detailToggle = () =>{
+    menu2.value = !menu2.value
+}
+
+
+
 </script>
 <template>
     <Header @menuToggle="toggleMenu"/>
@@ -21,7 +29,7 @@ const logout = () =>{
                     Ombor
                 </div>
                 <div class="flex gap-5">
-                    <button class="py-2 px-4 bg-green-400 text-white rounded-lg cursor-pointer">+ Qo'shish</button>
+                    <button @click="closeModall" class="py-2 px-4 bg-green-400 text-white rounded-lg cursor-pointer">+ Qo'shish</button>
                     <button class="cursor-pointer py-2 px-2 hover:shadow-lg rounded-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">
                             <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
@@ -44,8 +52,8 @@ const logout = () =>{
                         <div class="icon bg-green-400">3</div>
                     </div>
                 </div>
-                <div class="products py-4 px-10 w-full gap-5 grid content-start grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3">
-                    <div class="product col-span-1  row-span-1 bg-white flex flex-col justify-center items-center gap-2 cursor-pointer shadow">
+                <div class="products py-4 px-5 w-full gap-4">
+                    <div @click="detailToggle" class="product bg-white flex flex-col justify-center items-center gap-2 cursor-pointer shadow">
                         <div class="product_data flex items-center">
                             <div class="text-xl">📦</div>
                             <div class="product_name font-bold text-xl">Parnik (Qandolat)</div>
@@ -55,7 +63,7 @@ const logout = () =>{
                             <div class="number text-red-600 font-bold">23</div>
                         </div>
                     </div>
-                    <div class="product col-span-1  row-span-1 bg-white flex flex-col justify-center items-center gap-2 cursor-pointer shadow">
+                    <div @click="detailToggle" class="product bg-white flex flex-col justify-center items-center gap-2 cursor-pointer shadow">
                         <div class="product_data flex items-center">
                             <div class="text-xl">📦</div>
                             <div class="product_name font-bold text-xl">Parnik (Qandolat)</div>
@@ -65,7 +73,7 @@ const logout = () =>{
                             <div class="number text-red-600 font-bold">23</div>
                         </div>
                     </div>
-                    <div class="product col-span-1  row-span-1 bg-white flex flex-col justify-center items-center gap-2 cursor-pointer shadow">
+                    <div @click="detailToggle" class="product bg-white flex flex-col justify-center items-center gap-2 cursor-pointer shadow">
                         <div class="product_data flex items-center">
                             <div class="text-xl">📦</div>
                             <div class="product_name font-bold text-xl">Parnik (Qandolat)</div>
@@ -75,7 +83,7 @@ const logout = () =>{
                             <div class="number text-red-600 font-bold">23</div>
                         </div>
                     </div>
-                    <div class="product col-span-1  row-span-1 bg-white flex flex-col justify-center items-center gap-2 cursor-pointer shadow">
+                    <div @click="detailToggle" class="product bg-white flex flex-col justify-center items-center gap-2 cursor-pointer shadow">
                         <div class="product_data flex items-center">
                             <div class="text-xl">📦</div>
                             <div class="product_name font-bold text-xl">Parnik (Qandolat)</div>
@@ -85,7 +93,7 @@ const logout = () =>{
                             <div class="number text-red-600 font-bold">23</div>
                         </div>
                     </div>
-                    <div class="product col-span-1  row-span-1 bg-white flex flex-col justify-center items-center gap-2 cursor-pointer shadow">
+                    <div @click="detailToggle" class="product bg-white flex flex-col justify-center items-center gap-2 cursor-pointer shadow">
                         <div class="product_data flex items-center">
                             <div class="text-xl">📦</div>
                             <div class="product_name font-bold text-xl">Parnik (Qandolat)</div>
@@ -95,7 +103,7 @@ const logout = () =>{
                             <div class="number text-red-600 font-bold">23</div>
                         </div>
                     </div>
-                    <div class="product col-span-1  row-span-1 bg-white flex flex-col justify-center items-center gap-2 cursor-pointer shadow">
+                    <div @click="detailToggle" class="product bg-white flex flex-col justify-center items-center gap-2 cursor-pointer shadow">
                         <div class="product_data flex items-center">
                             <div class="text-xl">📦</div>
                             <div class="product_name font-bold text-xl">Parnik (Qandolat)</div>
@@ -106,9 +114,12 @@ const logout = () =>{
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
+        <ProductDetail :menu2="menu2"  @detailToggle="detailToggle"/>
     </div>
+    <StoreModal :modal="modal_status" @closeModal="closeModall"/>
 </template>
 <style scoped>
 .page{
@@ -155,7 +166,17 @@ const logout = () =>{
     border-radius: 6px;
     color: gray;
 }
+.products{
+    display: flex;
+    flex-wrap: wrap;
+    align-content: start;
+    justify-content: start;
+    align-items: start;
+    overflow-y: auto;
+}
 .product{
+    max-width: 300px;
+    min-width: 300px;
     background-color: white;
     height: 100px;
     border-radius: 10px;
