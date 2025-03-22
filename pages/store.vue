@@ -181,4 +181,7 @@ const detailToggle = () =>{
     height: 100px;
     border-radius: 10px;
 }
+.product:hover{
+    transform: scale(1.06);
+}
 </style>
