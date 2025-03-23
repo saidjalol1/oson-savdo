@@ -30,6 +30,7 @@ const detailToggle = () =>{
                     Sotuv
                 </div>
                 <div class="flex gap-5">
+                    <input type="text" placeholder="Qidiruv" class="text-center py-2 px-10 bg-gray-100" style="border-radius: 40px;border: 0px solid white !important;">
                     <button @click="toggleSaleModal" class="py-2 px-4 bg-green-400 text-white rounded-lg cursor-pointer">+ Qo'shish</button>
                     <button class="cursor-pointer py-2 px-2 hover:shadow-lg rounded-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">

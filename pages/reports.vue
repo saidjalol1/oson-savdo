@@ -1,0 +1,200 @@
+<script setup>
+const menuStatus = ref(true)
+const saleModal = ref(false)
+const cartModal = ref(false)
+const menu2 = ref(false)
+
+const toggleMenu = () =>{
+    menuStatus.value = !menuStatus.value
+}
+
+</script>
+<template>
+    <Header @menuToggle="toggleMenu"/>
+    <div class="flex">
+        <div class="menu flex-1">
+            <Sidebar :menuStatus = "menuStatus"/>
+        </div>
+        <div class="page_body w-full">
+            <div class="page_title bg-white flex justify-between items-center px-5">
+                <div class="text-2xl font-bold px-3 bg-white py-3">
+                    Hisobotlar
+                </div>
+                <div>
+                </div>
+                <div class="flex gap-5">
+                    <input type="text" placeholder="Qidiruv" class="text-center py-2 px-10 bg-gray-100" style="border-radius: 40px;">
+                    <button class="cursor-pointer py-2 px-2 hover:shadow-lg rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">
+                            <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="store_body flex  flex-col gap-3 p-5 ">
+                <div class="sales h-[calc(50vh-120px)]  w-full hover:shadow-lg shadow bg-white p-5 rounded-lg">
+                    <div class="head text-lg font-bold">
+                        Sotuvlar
+                    </div>
+                    <div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <td>Sana</td>
+                                    <td>Kassa</td>
+                                    <td>Jami Sotuv</td>
+                                    <td>Qarzmi</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="text-center">3/12/34</td>
+                                    <td>
+                                        <div class="flex gap-2 font-bold justify-center">
+                                            <span>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-wallet2" viewBox="0 0 16 16">
+                                                    <path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.432-1.499zM5.562 3H13V1.78a.5.5 0 0 0-.621-.484zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5z"/>
+                                                </svg>
+                                            </span>
+                                            <span>
+                                                Naqd
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        120000000
+                                    </td>
+                                    <td class="text-center">
+                                        Ha
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="flex gap-3 md:flex-col lg:flex-row">
+                    <div class="sales h-[calc(50vh-120px)]  w-full hover:shadow-lg shadow bg-white p-5 rounded-lg">
+                        <div class="head text-lg font-bold flex justify-between">
+                            <span> Mahsulotga qilingan To'lovlar</span>
+                            <div class="flex gap-5">
+                                <button class="cursor-pointer py-2 px-2 hover:shadow-lg rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">
+                                        <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <td>Sana</td>
+                                        <td>Kassa</td>
+                                        <td>Jami Summa</td>
+                                        <td>Mahsulot</td>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="text-center">3/12/34</td>
+                                        <td>
+                                            <div class="flex gap-2 font-bold justify-center">
+                                                <span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-wallet2" viewBox="0 0 16 16">
+                                                        <path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.432-1.499zM5.562 3H13V1.78a.5.5 0 0 0-.621-.484zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5z"/>
+                                                    </svg>
+                                                </span>
+                                                <span>
+                                                    Naqd
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            120000000
+                                        </td>
+                                        <td class="text-center">
+                                            Ha
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="sales h-[calc(50vh-120px)]  w-full hover:shadow-lg shadow bg-white p-5 rounded-lg">
+                        <div class="head text-lg font-bold flex justify-between">
+                            <span>Mayda Xarajatlar</span>
+                            <div class="flex gap-5">
+                                <button class="cursor-pointer py-2 px-2 hover:shadow-lg rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">
+                                        <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <td>Nomi</td>
+                                        <td>Kassa</td>
+                                        <td>Summasi</td>
+                                        <td>Sanasi</td>
+                                    </tr>
+                                </thead>    
+                                <tbody>
+                                    <tr>
+                                        <td class="text-center">3/12/34</td>
+                                        <td>
+                                            <div class="flex gap-2 font-bold justify-center">
+                                                <span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-wallet2" viewBox="0 0 16 16">
+                                                        <path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.432-1.499zM5.562 3H13V1.78a.5.5 0 0 0-.621-.484zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5z"/>
+                                                    </svg>
+                                                </span>
+                                                <span>
+                                                    Naqd
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            120000000
+                                        </td>
+                                        <td class="text-center">
+                                            Ha
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</template>
+<style scoped>
+.page_body{
+    background-color: aliceblue;
+}
+.page_title{
+    border-bottom: 2px solid rgb(243, 239, 239);
+}
+
+table{
+    width: 100%;
+    border: 1px solid rgb(230, 230, 230);
+    border-style: collapse;
+    overflow-x: auto;
+    overflow-y: auto;
+    margin-top: 10px;
+}
+thead tr td{
+    font-weight: bold;
+}
+tr, td{
+    border: 3px solid rgb(230, 230, 230);
+    padding: 4px;
+}
+
+</style>

@@ -22,17 +22,6 @@ const svgIcons  = [
         </svg>
     `,
     `
-        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="gray" class="bi bi-truck" viewBox="0 0 16 16">
-            <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5V5h1.02a1.5 1.5 0 0 1 1.17.563l1.481 1.85a1.5 1.5 0 0 1 .329.938V10.5a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 1 1-4 0H5a2 2 0 1 1-3.998-.085A1.5 1.5 0 0 1 0 10.5zm1.294 7.456A2 2 0 0 1 4.732 11h5.536a2 2 0 0 1 .732-.732V3.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .294.456M12 10a2 2 0 0 1 1.732 1h.768a.5.5 0 0 0 .5-.5V8.35a.5.5 0 0 0-.11-.312l-1.48-1.85A.5.5 0 0 0 13.02 6H12zm-9 1a1 1 0 1 0 0 2 1 1 0 0 0 0-2m9 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2"/>
-        </svg>
-    `,
-    `
-        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="gray" class="bi bi-person-vcard" viewBox="0 0 16 16">
-            <path d="M5 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4m4-2.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5M9 8a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4A.5.5 0 0 1 9 8m1 2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5"/>
-            <path d="M2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM1 4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H8.96q.04-.245.04-.5C9 10.567 7.21 9 5 9c-2.086 0-3.8 1.398-3.984 3.181A1 1 0 0 1 1 12z"/>
-        </svg>
-    `,
-    `
         <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="gray" class="bi bi-graph-up-arrow" viewBox="0 0 16 16">
             <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
         </svg>
@@ -54,11 +43,6 @@ const svgIcons  = [
         </svg>
     `,
     `
-        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="gray" class="bi bi-bag" viewBox="0 0 16 16">
-            <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
-        </svg>
-    `,
-    `
         <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="gray" class="bi bi-building-check" viewBox="0 0 16 16">
             <path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m1.679-4.493-1.335 2.226a.75.75 0 0 1-1.174.144l-.774-.773a.5.5 0 0 1 .708-.708l.547.548 1.17-1.951a.5.5 0 1 1 .858.514"/>
             <path d="M2 1a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6.5a.5.5 0 0 1-1 0V1H3v14h3v-2.5a.5.5 0 0 1 .5-.5H8v4H3a1 1 0 0 1-1-1z"/>
@@ -75,14 +59,12 @@ const menus = [
     "Bosh sahifa",
     "Ombor",
     "Sotuv",
-    "Nasiyador",
     "Hisobotlar",
     "Hisobot mahsulot bo'yicha",
     "Diagram",
     "Foydalanuvchilar",
     "Xarajatlar",
-    "Kassa",
-    "O'tkazmalar"
+    "Tranzaksiyalar"
 ]
 
 const menuItems = svgIcons.map((icon, index) => ({
@@ -97,14 +79,12 @@ const convertLetter = (text) => {
         "bosh_sahifa": "/",
         "ombor": "/store",
         "sotuv": "/sale",
-        "nasiyador": "/debtors",
         "hisobotlar": "/reports",
         "hisobot_mahsulot_bo'yicha": "/product-reports",
         "diagram": "/diagram",
         "foydalanuvchilar": "/users",
         "xarajatlar": "/expenses",
-        "kassa": "/cashbox",
-        "o'tkazmalar": "/transfers"
+        "tarnsfers": "/transfers"
     };
 
     return routes[title] || title; // Return the matched route or the transformed text if not found
