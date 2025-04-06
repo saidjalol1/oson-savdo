@@ -5,7 +5,6 @@
   const config = useRuntimeConfig()
 
   const route = useRouter()
-  const login_page = ref("admin")
   const btnLoader = ref(false)
   const error = ref("")
 
@@ -21,32 +20,36 @@
   });
   
   const login = async () =>{
-  btnLoader.value = true
+    btnLoader.value = true
+    const formData = new URLSearchParams();
+    formData.append('username', loginData.value.username);
+    formData.append('password', loginData.value.password);
   try {
-    const response = await fetch(`${config.public.apiBase}/users/token/`, {
+    const response = await fetch(`${config.public.apiBase}/token/`, {
       method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify(loginData.value),
+      body: formData,
     })
+
+    
+    if (response.status === 401) {
+      error.value = "Foydalanuvchi nomi yoki parol noto'g'ri";
+      delay_load();
+      return;
+    }
 
     if (!response.status || !response.ok) {
       throw new Error('Network response was not ok')
     }
+
     const res = await response.json()
+    console.log(res);
     
-    if (!res.status){
-      error.value = "Parol yoki foydalanuvchi login xato "
-    }
     delay_load()
-    localStorage.setItem("tokenDokon", res.data["access_token"])
-    localStorage.setItem("user_type", res.type)
-    if (login_page.value == "admin"){
-      route.push("/")
-    }else {
-      route.push("/")
-    }
+    localStorage.setItem("tokenOson", res["access_token"])
+    route.push("/")
 
   } catch (error) {
     error.value = error

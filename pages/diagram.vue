@@ -7,11 +7,15 @@ const toggleMenu = () =>{
 
 </script>
 <template>
-    <Header @menuToggle="toggleMenu"/>
-    <div class="flex">
-        <div class="menu flex-1">
+     <div class="flex">
+        <div class="menu">
             <Sidebar :menuStatus = "menuStatus"/>
         </div>
+        <div class="w-full">
+            <Header @menuToggle="toggleMenu"/>
+        </div>
+    </div>
+    <div class="flex">
         <div class="page_body w-full ">
             <div class="page_title bg-white flex justify-between items-center px-5">
                 <div class="text-2xl font-bold px-3 bg-white py-3">
