@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router';
 const menuStatus = ref(true)
 const modal_status = ref(false)
+const modal_status2 = ref(false)
 const menu2 = ref(false)
 const activeIndex = ref(0)
 
@@ -124,6 +125,9 @@ const closeModall = () =>{
     modal_status.value = !modal_status.value
 }
 
+const closeModal2 = () => {
+  modal_status2.value = !modal_status2.value
+}
 
 
 const setActive = (index) => {
@@ -143,6 +147,40 @@ const changeFirstLetter = (word) =>{
 const formatUrl = (path) =>{
     return `${config.public.apiBase}/${path}`
 }
+
+const loadingButtons = ref({})
+const printCode = (image, id) => {
+  loadingButtons.value[id] = true;
+
+  setTimeout(() => { // Simulate loading delay
+    const printWindow = window.open('', '', 'height=600,width=800');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>Print Code</title>
+          <style>
+            body { font-family: Arial, sans-serif; }
+            .container { padding: 20px; }
+            img { max-width: 100%; height: auto; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <img src="${image}" alt="Code Image" />
+          </div>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    }
+    loadingButtons.value[id] = false;
+  }, 2000); // Simulated delay for loader effect
+};
+
 
 onMounted( async () =>{
     await categoriesGet()
@@ -165,7 +203,7 @@ onMounted( async () =>{
                 <div class="flex gap-5">
                     <input  v-model="searchQuery" type="text" placeholder="Qidiruv" class="text-center py-2 px-10 bg-gray-100" style="border-radius: 6px;">
                     <button @click="closeModall" class="py-2 px-4 bg-black text-white rounded-lg cursor-pointer">+ Yangi</button>
-                    <button @click="closeModall" class="py-2 px-4 bg-yellow-400 text-white rounded-lg cursor-pointer">🔁 To'ldirish</button>
+                    <button @click="modal_status2 = true" class="py-2 px-4 bg-yellow-400 text-white rounded-lg cursor-pointer">🔁 To'ldirish</button>
                 </div>
             </div>
             <div class="store_body h-[calc(100vh-120px)] flex">
@@ -196,6 +234,7 @@ onMounted( async () =>{
                                     <th class="py-3 px-4 text-left">Mahsulot</th>
                                     <th class="py-3 px-4 text-center">Categoriya</th>
                                     <th class="py-3 px-4 text-center">Oxirgi kiritilgan sana</th>
+                                    <th class="py-3 px-4 text-center">Barcode</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -216,6 +255,15 @@ onMounted( async () =>{
                                     </td>
                                     <td class="text-center" v-if="product.store_reports_in.length"><span class="bg-green-100 text-black-600 px-3 py-1 ">✔  {{ new Date(product.store_reports_in.at(-1)?.date_added).toLocaleDateString() }}</span></td>
                                     <td class="text-center" v-else><span class="bg-red-100 text-black-600 px-3 py-1 ">Mavjus emas</span></td>
+                                    <td class="text-center">
+                                      <button :disabled="loadingButtons[product.id]" class="btn ml-2 px-2 py-2 bg-yellow-500 rounded-lg shadow-md cursor-pointer" @click.stop="printCode(formatUrl(product?.barcode), product.id)">
+                                          <div  v-if="loadingButtons[product.id]" class="loader"></div>
+                                              <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-printer" viewBox="0 0 16 16">
+                                                  <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1"/>
+                                                  <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1"/>
+                                              </svg>
+                                      </button>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -233,8 +281,7 @@ onMounted( async () =>{
         <ProductDetail :menu2="menu2" :product="selectedProduct" :categories="categories"  @productUpdated="handleProductUpdated"  @detailToggle="detailToggle"/>
         </div>
     </div>
-    <StoreModal :modal="modal_status" :store_id="store?.id" :categories="categories" @closeModal="closeModall"/>
-
+    <StoreModal :modal="modal_status" :modal2="modal_status2" :store_id="store?.id" :categories="categories" :products="store?.products" @closeModal="closeModall" @closeModal2="closeModal2"/>
 </template>
 <style scoped>
 .page{
@@ -261,7 +308,7 @@ onMounted( async () =>{
     height: 100%;
     background-color: white;
     overflow-y: scroll;
-    overflow-x: hidden;
+    overflow-x: scroll;
 }
 .title{
     font-weight: 500;
@@ -306,5 +353,25 @@ onMounted( async () =>{
 .editBlock{
   position: relative;
   top: 30px;
+}
+
+.loader {
+  width: 20px;
+  height: 20px;
+  margin: 0 auto;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #525355; /* Primary Blue */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Loader Animation */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

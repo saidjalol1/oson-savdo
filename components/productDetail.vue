@@ -114,12 +114,17 @@ function toggleEdit(){
     editModal.value = !editModal.value
 }
 
-
+function formatNumber(number, decimals = 2) {
+  return number.toLocaleString(undefined, { 
+    minimumFractionDigits: decimals, 
+    maximumFractionDigits: decimals 
+  });
+}
 
 </script>
 <template> 
-    <div class="overlay" v-if="menu2">
-        <div  class="menu_2 shadow-lg">
+    <div class="overlay h-[calc(100vh-0px)] " v-if="menu2">
+        <div  class="menu_2 shadow-lg h-[calc(100vh-0px)]">
         <div class="page_title bg-white flex justify-between items-center px-5">
             <div class="text-2xl font-bold px-3 bg-white py-3">
                 Mahsulot haqida
@@ -144,28 +149,21 @@ function toggleEdit(){
                 <div class="text">Oxirgi xarid narxi</div>
                 <div class="product_data flex items-center" v-if="product.store_reports_in.length">
                     <div class="text-md">$ </div>
-                    <div class="product_name font-bold text-lg">{{ product.store_reports_in.at(-1)?.price }}</div>
+                    <div class="product_name font-bold text-lg">{{ formatNumber(product.store_reports_in.at(-1)?.price) }}</div>
                 </div>
             </div>
             <div class="flex justify-between hover:bg-gray-200 py-4 px-5 cursor-pointer ">
                 <div class="text">Oxirgi sotuv narxi</div>
                 <div class="product_data flex items-center" v-if="product.store_reports_in.length">
                     <div class="text-md">$ </div>
-                    <div class="product_name font-bold text-lg">{{ product.store_reports_in.at(-1)?.sale_price }}</div>
+                    <div class="product_name font-bold text-lg">{{ formatNumber(product.store_reports_in.at(-1)?.sale_price) }}</div>
                 </div>
             </div>
             <div class="flex justify-between hover:bg-gray-200 py-4 px-5 cursor-pointer ">
                 <div class="text">Qoldiq (sotuv narxida)</div>
                 <div class="product_data flex items-center">
                     <div class="text-md">$</div>
-                    <div class="product_name font-bold text-lg">{{ calculateRemainingSalePrice(product?.store_reports_in) }}</div>
-                </div>
-            </div>
-            <div class="flex justify-between hover:bg-gray-200 py-4 px-5 cursor-pointer ">
-                <div class="text">O'lchov birligi</div>
-                <div class="product_data flex items-center">
-                    <div class="text-md"></div>
-                    <div class="product_name font-bold text-lg">Kg</div>
+                    <div class="product_name font-bold text-lg">{{ formatNumber(calculateRemainingSalePrice(product?.store_reports_in)) }}</div>
                 </div>
             </div>
             <div class="flex justify-between hover:bg-gray-200 py-4 px-5 cursor-pointer ">
@@ -189,8 +187,8 @@ function toggleEdit(){
                 </svg>
             </button>
         </div>
-        <div class="px-5">
-            <table class="w-full border-collapse mt-5">
+        <div class="p-5 w-full" style="height: 400px; overflow: auto;">
+            <table class="border-collapse table w-full" style="overflow: scroll;">
                 <thead class="w-full">
                     <tr class="bg-gray-200 w-full">
                         <th class="py-3 px-4 text-left">Partiya</th>
@@ -200,9 +198,8 @@ function toggleEdit(){
                         <th class="py-3 px-4 text-center">Qoldiq (Miqdor)</th>
                     </tr>
                 </thead>
-                <tbody>
-                                <!-- Row -->
-                    <tr v-for="product in product.store_reports_in" :key="product.index" class=" hover:bg-gray-100 cursor-pointer">
+                <tbody>           <!-- Row -->
+                    <tr v-for="product in product.store_reports_in" :key="product.index" class=" bg-white hover:bg-gray-100 cursor-pointer">
                         <td class="py-4 px-4 flex items-center gap-3">
                             <span class="text-gray-800 font-bold">{{ convertDate(product) }}</span>
                         </td>
@@ -213,12 +210,12 @@ function toggleEdit(){
                         </td>
                         <td  class="text-center">
                             <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
-                                {{ product?.sale_price }}
+                                {{  formatNumber(product?.sale_price)}}
                             </span>
                         </td>
                         <td  class="text-center">
                             <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
-                                {{ product?.price }}
+                                {{ formatNumber(product?.price) }}
                             </span>
                         </td>
                         <td class="text-center" ><span class="bg-red-100 text-black-600 px-3 py-1 ">{{ product?.quantity_left }} </span></td>
@@ -228,6 +225,7 @@ function toggleEdit(){
         </div>
         </div>
     </div>
+  
     <div class="overlay" v-if="editModal">
         <div class="modal menu_2">
             <div class="page_title bg-white flex justify-between items-center px-5">
@@ -305,7 +303,6 @@ function toggleEdit(){
 <style scoped>
 .menu_2{
     width: 700px;
-    height: 100vh;
     position: fixed;
     top: 0;
     right: 0;
@@ -326,7 +323,6 @@ function toggleEdit(){
 }
 .overlay{
     width: 100%;
-    height: 100vh;
     background-color: rgba(209, 206, 206, 0.589);
     position: fixed;
     top: 0;

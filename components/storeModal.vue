@@ -4,8 +4,10 @@ import { ref, onMounted, defineEmits } from 'vue';
 const config = useRuntimeConfig()
 const props = defineProps({
     modal: Boolean,
+    modal2: Boolean,
     store_id: Number,
-    categories: Array
+    categories: Array,
+    products: Array,
 })
 
 const error = ref("")
@@ -15,6 +17,39 @@ const newCategory = ref({})
 const newProduct = ref({})
 const editCategoryModal = ref(false)
 const selectedCat = ref({})
+const scanInput = ref("")
+const foundProduct = ref({})
+const nameSearch = ref("")
+const nameSearchResult = ref([])
+const newProductTransaction = ref({})
+
+watch(scanInput, (value) => {
+  if (value) {
+    const found = props.products.find(p => {
+      const barcode = p.barcode?.split('/')[1]?.split('_')[0];
+      return barcode === value;
+    });
+
+    if (found) {
+      console.log("Topilgan mahsulot:", found);
+      foundProduct.value = found
+    } else {
+      alert("Mahsulot topilmadi!");
+    }
+  }
+});
+
+watch(nameSearch, (value) => {
+  if (value.trim()) {
+    nameSearchResult.value = props.products.filter(p =>
+      p.name.toLowerCase().includes(value.toLowerCase())
+    );
+  } else {
+    nameSearchResult.value = [];
+  }
+});
+
+
 const ctgAdd = async () => {
   try {
     const response = await fetch(`${config.public.apiBase}/category-create`, {
@@ -141,16 +176,80 @@ const productCreate = async () => {
   }
 };
 
+const productFill = async () => {
+    if (!foundProduct.value.name) {
+        error.value = "Mahsulot tanlang";
+        error_modal.value = true;
+        return;
+    }
+  try {
+    const response = await fetch(`${config.public.apiBase}/product-enter`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `bearer ${localStorage.getItem("tokenOson")}`
+      },
+      body: JSON.stringify({
+        id: parseInt(foundProduct.value.id),
+        store_id: parseInt(props.store_id),
+        quantity_in: parseInt(newProductTransaction.value.quantity_in),
+        price: parseFloat(newProductTransaction.value.price),
+        sale_price: parseFloat(newProductTransaction.value.sale_price),
+      }),
+
+    });
+   
+    if (!response.ok) {
+      if (response.status === 401) {
+        route.push("/login");
+      }
+      
+      throw new Error("Tarmoqda Xatolik, Sahifani yangilang");
+    }
+   
+
+    const data = await response.json()
+    if (data.warning){
+        error.value = data.warning
+        error_modal.value = true
+    }else{
+        window.location.reload()
+    }
+
+   
+  } catch (error) {
+    console.log(error) 
+    console.log(JSON.stringify({
+        id: parseInt(foundProduct.value.id),
+        store_id: parseInt(props.store_id),
+        quantity_in: parseInt(newProductTransaction.value.quantity_in),
+        price: parseFloat(newProductTransaction.value.price),
+        sale_price: parseFloat(newProductTransaction.value.sale_price),
+      }),);
+    
+    alert("Malumotlarni olishda Xatolik:", error);
+  }
+};
+
+
 const editCategory = (object) =>{
     selectedCat.value = object
     editCategoryModal.value = true
 }
 
-const emit = defineEmits(['closeModal']);
+const scannedProduct = ()=>{
+    console.log(props.products);
+    
+}
+
+const emit = defineEmits(['closeModal', 'closeModal2']);
 
 const close = () => {
     emit('closeModal');
 };
+const closeSecondModal = () =>{
+    emit('closeModal2');
+}
 
 </script>
 <template>
@@ -266,6 +365,65 @@ const close = () => {
                     <div class="buttons">
                         <button type="submit" class="submit-btn">Saqlash</button>
                         <button type="button" @click="editCategoryModal = false"  class="submit-btn">Bekor qilish</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div v-if="modal2" class="overal">
+        <div class="modal shadow-xl px-10 py-4">
+            <div class="modal-head flex justify-between items-center ">
+                <div class="font-bold text-2xl">Mahsulot kiritish</div>
+                <button @click="closeSecondModal" class="bg-black shadow-md cursor-pointer py-2 px-4 text-white rounded">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x" viewBox="0 0 16 16">
+                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal_body mt-10">
+                <form @submit.prevent="productFill">
+                    <div class="form-group">
+                        <label for="product-name">Scan (Barcode bo'yicha) *</label>
+                        <input type="text" @input="scannedProduct" v-model="scanInput" id="product-name" >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-name">Nomi  bo'yicha *</label>
+                        <input type="text" v-model="nameSearch" id="product-name" >
+                    </div>
+                    <div v-if="nameSearchResult.length > 0" class="mt-2">
+                        <div class="text-sm text-gray-600 mb-1">Topilgan mahsulotlar:</div>
+                        <ul class="border rounded p-2 max-h-40 overflow-auto">
+                            <li v-for="product in nameSearchResult" :key="product.id" class="py-1 hover:bg-gray-100 px-2 rounded cursor-pointer"
+                                @click="foundProduct = product">
+                                <span> {{ product?.name }}</span>    <span class="text-red-600">| {{ product?.category?.name }} |</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="form-group text-black text-xl text-center font-bold py-3 rounded mt-4" style="background-color: #ffd00c;">
+                        {{ foundProduct?.name }} ({{ foundProduct?.category?.name }})
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-name">Miqdori *</label>
+                        <input type="number" v-model="newProductTransaction.quantity_in" id="product-name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-name">Tan narxi *</label>
+                        <input type="number" v-model="newProductTransaction.price" id="product-name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-name">Sotuv narxi *</label>
+                        <input type="number" v-model="newProductTransaction.sale_price" id="product-name" required>
+                    </div>
+
+
+                    <div class="buttons">
+                        <button type="submit" class="submit-btn">Saqlash</button>
+                        <button type="button" @click="closeSecondModal"  class="submit-btn">Bekor qilish</button>
                     </div>
                 </form>
             </div>
