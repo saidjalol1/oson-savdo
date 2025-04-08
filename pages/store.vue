@@ -314,7 +314,7 @@ onMounted( async () =>{
     font-weight: 500;
 }
 .item{
-    width: 220px;
+    width: 200px;
     height: 40px;
     border-radius: 40px;
     cursor: pointer;

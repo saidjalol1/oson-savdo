@@ -3,6 +3,17 @@ const menuStatus = ref(true)
 const saleModal = ref(false)
 const cartModal = ref(false)
 const menu2 = ref(false)
+const selectedCategory = ref(null)
+const activeIndex = ref(0)
+const categories = ref(
+    [
+    {"name":"Hammasi"},
+    {"name":"Naqd"},
+    {"name":"Karta"},
+    {"name":"Qarz"},
+    ]
+)
+
 
 const toggleMenu = () =>{
     menuStatus.value = !menuStatus.value
@@ -12,6 +23,13 @@ const toggleSaleModal = ()=>{
     saleModal.value = !saleModal.value
 }
 
+const changeFirstLetter = (word) =>{
+    return `${word[0].toUpperCase()}${word.slice(1)}`
+}
+const setActive = (index) => {
+  activeIndex.value = index;
+  selectedCategory.value = categories.value[index]?.id || null;
+};
 
 const detailToggle = () =>{
     menu2.value = !menu2.value
@@ -25,60 +43,71 @@ const detailToggle = () =>{
         </div>
         <div class="w-full">
             <Header @menuToggle="toggleMenu"/>
-        </div>
-    </div>
-    <div class="flex">
-        <div class="page_body w-full h-[calc(100vh-65px)]">
+            <div class="page_body w-full h-[calc(100vh-65px)]">
             <div class="page_title bg-white flex justify-between items-center px-5">
                 <div class="text-2xl font-bold px-3 bg-white py-3">
                     Sotuv
                 </div>
                 <div class="flex gap-5">
-                    <input type="text" placeholder="Qidiruv" class="text-center py-2 px-10 bg-gray-100" style="border-radius: 40px;border: 0px solid white !important;">
-                    <button @click="toggleSaleModal" class="py-2 px-4 bg-green-400 text-white rounded-lg cursor-pointer">+ Qo'shish</button>
-                    <button class="cursor-pointer py-2 px-2 hover:shadow-lg rounded-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">
-                            <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
-                        </svg>
-                    </button>
+                    <input type="date" placeholder="Qidiruv" class="text-center py-2 px-10 bg-gray-100" style="border-radius: 6px;border: 0px solid white !important;">
+                    <button @click="toggleSaleModal" class="py-2 px-4 bg-black text-white rounded-lg cursor-pointer">+ Qo'shish</button>
                 </div>
             </div>
             <div class="store_body h-[calc(100vh-120px)] flex">
                 <div class="categories py-4 px-2">
-                    <div active-class="active" class="item flex justify-start items-center gap-4 px-4" >
-                        <div class="title cursor-pointer" >Hammasi</div>
-                        <div class="icon bg-green-400">3</div>
+                    <div
+                        v-for="(category, index) in categories"
+                        :key="index"
+                        class="item flex justify-between items-center gap-4 px-4 cursor-pointer"
+                        :class="{ active: activeIndex === index }"
+                        @click="setActive(index)"
+                        >
+                            <div class="title flex gap-x-2 items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-tags-fill" viewBox="0 0 16 16">
+                                    <path d="M2 2a1 1 0 0 1 1-1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 2 6.586zm3.5 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
+                                    <path d="M1.293 7.793A1 1 0 0 1 1 7.086V2a1 1 0 0 0-1 1v4.586a1 1 0 0 0 .293.707l7 7a1 1 0 0 0 1.414 0l.043-.043z"/>
+                                </svg>
+                                {{ changeFirstLetter(category.name) }}
+                            </div>
+                            <div class="icon bg-orange-400 text-white">1</div>
                     </div>
-                    <div active-class="active" class="item flex justify-start items-center gap-4 px-4 mt-2 cursor-pointer" >
-                        <div class="text-gray-600" >2/13/2025</div>
-                        <div class="icon bg-green-400">3</div>
-                    </div>
-                    
                 </div>
 
                 <div class="sale_body w-full gap-4 p-5">
                     <div class="salee shadow-lg p-2 cursor-pointer">
-                        <div @click="detailToggle" class="sum text-xl font-bold ">120.000.00</div>
+                        <div @click="detailToggle" class="sum flex justify-between items-center">
+                            <span class="text-xl font-bold ">120.000.00</span>
+                            <span class="bg-green-400 text-white rounded-full px-2">karta</span>
+                        </div>
                         <div class="sum text-gray-600">3/12/4550</div>
                     </div>
                     <div class="salee shadow-lg p-2 cursor-pointer">
-                        <div @click="detailToggle" class="sum text-xl font-bold ">120.000.00</div>
+                        <div @click="detailToggle" class="sum flex justify-between items-center">
+                            <span class="text-xl font-bold ">120.000.00</span>
+                            <span class="bg-green-400 text-white rounded-full px-2">karta</span>
+                        </div>
                         <div class="sum text-gray-600">3/12/4550</div>
                     </div>
                     <div class="salee shadow-lg p-2 cursor-pointer">
-                        <div @click="detailToggle" class="sum text-xl font-bold ">120.000.00</div>
+                        <div @click="detailToggle" class="sum flex justify-between items-center">
+                            <span class="text-xl font-bold ">120.000.00</span>
+                            <span class="bg-green-400 text-white rounded-full px-2">karta</span>
+                        </div>
                         <div class="sum text-gray-600">3/12/4550</div>
                     </div>
                     <div class="salee shadow-lg p-2 cursor-pointer">
-                        <div @click="detailToggle" class="sum text-xl font-bold ">120.000.00</div>
+                        <div @click="detailToggle" class="sum flex justify-between items-center">
+                            <span class="text-xl font-bold ">120.000.00</span>
+                            <span class="bg-green-400 text-white rounded-full px-2">karta</span>
+                        </div>
                         <div class="sum text-gray-600">3/12/4550</div>
                     </div>
                 </div>
             </div>
+            </div>
         </div>
-        <SaleDetail :menu2="menu2"  @detailToggle="detailToggle"/>
     </div>
-
+    <SaleDetail :menu2="menu2"  @detailToggle="detailToggle"/>
     <div v-show="saleModal" class="sale_modal" id="saleModalOverlay">
         <div :class="{ 'modal-active': saleModal }" class="modal shadow-lg bg-white p-5">
             <div class="header flex justify-between items-center">
@@ -233,7 +262,7 @@ const detailToggle = () =>{
 </template>
 <style scoped>
 .page_body{
-    background-color: aliceblue;
+    background-color: #f1f1f3;
 }
 .page_title{
     border-bottom: 2px solid rgb(243, 239, 239);
@@ -243,6 +272,7 @@ const detailToggle = () =>{
     height: 100%;
     position: fixed;
     top: 0;
+    right: 0;
     z-index: 1000;
     background-color: rgba(128, 128, 128, 0.74);
 }
@@ -267,13 +297,29 @@ const detailToggle = () =>{
     right: 0%;
 }
 .categories{
-    width: 240px;
+    width: 280px;
     border-right: 2px solid rgb(230, 230, 230);
     height: 100%;
     background-color: white;
+    overflow-y: scroll;
+    overflow-x: scroll;
 }
 .title{
     font-weight: 500;
+}
+.item{
+    width: 200px;
+    height: 40px;
+    border-radius: 40px;
+    cursor: pointer;
+}
+
+.active{
+    background-color: #fff5cc;
+}
+
+.item:hover{
+    background-color: rgb(241, 233, 233);
 }
 
 
@@ -292,10 +338,6 @@ const detailToggle = () =>{
     background-color: white;
     height: 100px;
     border-radius: 10px;
-}
-
-.active{
-    background-color: #30ccf34b;
 }
 .icon{
     padding: 0px 7px;
