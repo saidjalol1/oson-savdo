@@ -14,7 +14,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase: 'https://backendtest.muvaffaqiyatsirlari.uz',
+      apiBase: 'http://127.0.0.1:8000',
     },
   },
 

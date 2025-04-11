@@ -1,4 +1,6 @@
 <script setup>
+import { formatNumber } from 'chart.js/helpers'
+
 const menuStatus = ref(true)
 const saleModal = ref(false)
 const cartModal = ref(false)
@@ -7,6 +9,15 @@ const selectedCategory = ref(null)
 const activeIndex = ref(0)
 const activButton = ref("naqd")
 const debt = ref("yoq")
+const route = useRouter()
+const config = useRuntimeConfig()
+
+const sales = ref([])
+const store = ref({})
+const scanInput = ref("")
+const foundProduct = ref({})
+const saledetailObject = ref({})
+const data = ref({})
 
 const categories = ref(
     [
@@ -17,6 +28,282 @@ const categories = ref(
     ]
 )
 
+const newItem = ref({
+    product_id: foundProduct?.value?.id,
+    quantity: 0
+});
+
+const saleObject = ref({
+  store_id: 0,
+  card_payment: 0,
+  cash_payment: 0,
+  debt_payment: 0,
+  total: 0,
+  debt: 0,
+  items: []
+});
+
+
+const selectedReport = ref(null); 
+const availableReports = computed(() => {
+  return foundProduct.value?.store_reports_in || [];
+});
+
+const validateQuantity = (quantity, report) => {
+  if (!report) return false;
+  return quantity > 0 && quantity <= report.quantity_left;
+};
+const addToSale = () => {
+  // Validate selected report
+  if (!selectedReport.value) {
+    alert("Iltimos, mahsulot partiyasini tanlang!");
+    return;
+  }
+
+  // Validate quantity
+  if (!newItem.value.quantity || newItem.value.quantity <= 0) {
+    alert("Iltimos, miqdorni to'g'ri kiriting!");
+    return;
+  }
+
+  // Check if quantity exceeds available amount
+  if (!validateQuantity(newItem.value.quantity, selectedReport.value)) {
+    alert(`Mahsulot miqdori yetarli emas! Mavjud miqdor: ${selectedReport.value.quantity_left}`);
+    return;
+  }
+
+  const existingItem = saleObject.value.items.find(
+    item => item.product_id === newItem.value.product_id && item.report_id === selectedReport.value.id
+  );
+
+  const itemTotal = selectedReport.value.sale_price * parseInt(newItem.value.quantity);
+
+  if (existingItem) {
+    // Check if adding more would exceed available quantity
+    const newTotalQuantity = existingItem.quantity + parseInt(newItem.value.quantity);
+    if (newTotalQuantity > selectedReport.value.quantity_left) {
+      alert(`Jami miqdor mavjud miqdordan oshib ketdi! Mavjud miqdor: ${selectedReport.value.quantity_left}`);
+      return;
+    }
+    
+    existingItem.quantity = newTotalQuantity;
+    saleObject.value.total += itemTotal;
+  } else {
+    // If not found, push new item with report_id
+    saleObject.value.items.push({
+      product_id: foundProduct.value.id,
+      report_id: selectedReport.value.id,
+      quantity: parseInt(newItem.value.quantity),
+      price: selectedReport.value.sale_price
+    });
+    saleObject.value.total += itemTotal;
+  }
+
+  // Update the selected report's available quantity in the UI
+  selectedReport.value.quantity_left -= parseInt(newItem.value.quantity);
+
+  // Clear temporary values
+  newItem.value = {
+    product_id: null,
+    quantity: 0
+  };
+  foundProduct.value = {};
+  selectedReport.value = null;
+  scanInput.value = "";
+  
+  cartModal.value = false;
+};
+
+const removeFromSale = (productId) => {
+  const index = saleObject.value.items.findIndex(item => item.product_id === productId);
+  if (index !== -1) {
+    const item = saleObject.value.items[index];
+    const product = store.value.products.find(p => p.id === productId);
+    const itemPrice = product?.store_reports_in?.at(-1)?.sale_price || 0;
+    
+    saleObject.value.total -= itemPrice * item.quantity;
+    saleObject.value.items.splice(index, 1);
+  }
+};
+
+const clearSale = () => {
+  saleObject.value = {
+    store_id: store.value.id,
+    card_payment: 0,
+    cash_payment: 0,
+    debt_payment: 0,
+    total: 0,
+    debt: 0,
+    items: []
+  };
+};
+
+
+const productsGet = async () => {
+  try {
+    const response = await fetch(`${config.public.apiBase}/product`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `bearer ${localStorage.getItem("tokenOson")}`
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        route.push("/login");
+      }
+      throw new Error("Tarmoqda Xatolik, Sahifani yangilang");
+    }
+
+    const products = await response.json();
+    store.value = products;
+    console.log(store.value);
+    saleObject.value.store_id = products.id
+  } catch (error) {
+    alert("Malumotlarni olishda Xatolik:", error);
+  }
+};
+
+// Update the watch for scanInput to reset selectedReport
+watch(scanInput, (value) => {
+  if (value) {
+    const found = store?.value?.products.find(p => {
+      const barcode = p.barcode?.split('/')[1]?.split('_')[0];
+      return barcode === value;
+    });
+
+    if (found) {
+      foundProduct.value = found;
+      newItem.value.product_id = found.id;
+      selectedReport.value = null; // Reset selected report when scanning new product
+    } else {
+      alert("Mahsulot topilmadi!");
+    }
+  }
+});
+
+watch(() => saleObject.value.items, (newItems) => {
+  let newTotal = 0;
+  newItems.forEach(item => {
+    const product = store.value.products.find(p => p.id === item.product_id);
+    const price = product?.store_reports_in?.at(-1)?.sale_price || 0;
+    newTotal += price * item.quantity;
+  });
+  saleObject.value.total = newTotal;
+}, { deep: true });
+
+
+
+const submitSale = async () => {
+  calculatePayments();
+  
+  try {
+    const response = await fetch(`${config.public.apiBase}/sale`, {  // Changed from '/sale' to '/sales'
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `bearer ${localStorage.getItem("tokenOson")}`
+      },
+      body: JSON.stringify({
+        store_id: saleObject.value.store_id,
+        card_payment: saleObject.value.card_payment,
+        cash_payment: saleObject.value.cash_payment,
+        debt_payment: saleObject.value.debt_payment,
+        total: saleObject.value.total,
+        debt: saleObject.value.total - saleObject.value.debt_payment,
+        items: saleObject.value.items.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity
+        }))
+      })
+    });
+
+    const sale_obj = await response.json();
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        route.push("/login");
+        return;
+      }
+      
+      // Handle specific error messages from backend
+      let errorMessage = "Tarmoqda Xatolik, Sahifani yangilang";
+      if (sale_obj.detail) {
+        if (typeof sale_obj.detail === 'string') {
+          errorMessage = sale_obj.detail;
+        } else if (Array.isArray(sale_obj.detail)) {
+          errorMessage = sale_obj.detail.map(err => err.msg).join(', ');
+        }
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    if (sale_obj.warning) {
+        alert(sale_obj.warning)
+    }else{
+      data.value = sale_obj
+      printCheck()
+      alert("Sotuv muvaffaqiyatli amalga oshirildi!");
+        // window.location.reload()
+      toggleSaleModal();
+      console.log(data.value);
+    }
+   
+  } catch (error) {
+    console.error("Sotuvda xatolik:", error);
+    
+    // User-friendly error messages
+    let userMessage = "Sotuvni amalga oshirishda xatolik";
+    if (error.message.includes("Not enough quantity")) {
+      userMessage = "Mahsulot miqdori yetarli emas!";
+    } else if (error.message.includes("Store not found")) {
+      userMessage = "Do'kon topilmadi!";
+    } else if (error.message.includes("Product report")) {
+      userMessage = "Mahsulot ma'lumotlari topilmadi!";
+    }
+    
+    alert(`${userMessage}: ${error.message}`);
+  }
+};
+
+const salesget = async () => {
+  try {
+    const response = await fetch(`${config.public.apiBase}/sales`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `bearer ${localStorage.getItem("tokenOson")}`
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        route.push("/login");
+      }
+      throw new Error("Tarmoqda Xatolik, Sahifani yangilang");
+    }
+
+    const salesObjects = await response.json();
+    sales.value = salesObjects;
+    console.log(sales.value);
+  } catch (error) {
+    alert("Malumotlarni olishda Xatolik:", error);
+  }
+};
+
+const formatDateTime = (dateStr) => {
+  const date = new Date(dateStr)
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  })
+}
 
 const toggleMenu = () =>{
     menuStatus.value = !menuStatus.value
@@ -34,11 +321,62 @@ const setActive = (index) => {
   selectedCategory.value = categories.value[index]?.id || null;
 };
 
-const detailToggle = () =>{
+const detailToggle = (object) =>{
     menu2.value = !menu2.value
+    saledetailObject.value = object
 }
 
+const calculatePayments = () => {
+  if (debt.value === 'ha') {
+    saleObject.value.debt = saleObject.value.total - saleObject.value.debt_payment;
+    saleObject.value.debt_payment = saleObject.value.debt_payment;
+    
+    if (activButton.value === 'naqd') {
+      saleObject.value.cash_payment = saleObject.value.debt_payment;
+      saleObject.value.card_payment = 0;
+    } else {
+      saleObject.value.card_payment = saleObject.value.debt_payment;
+      saleObject.value.cash_payment = 0;
+    }
+  } else {
+    saleObject.value.debt = 0;
+    saleObject.value.debt_payment = 0;
+    
+    if (activButton.value === 'naqd') {
+      saleObject.value.cash_payment = saleObject.value.total;
+      saleObject.value.card_payment = 0;
+      saleObject.value.total = saleObject.value.total;
+    } else {
+      saleObject.value.card_payment = saleObject.value.total;
+      saleObject.value.cash_payment = 0;
+    }
+  }
+};
 
+
+const printCheck = () => {
+  let checkContent = `\nCHEK RAQAMI: ${data?.id}\n`;
+  checkContent += `SANA: ${new Date().toLocaleDateString()}\n`;
+  checkContent += `---------------------------------\n`;
+  data?.items.forEach((item, index) => {
+    checkContent += `${index + 1}. ${item?.product?.product?.name}\n`;
+    checkContent += `  Miqdor: ${item?.quantity} | Narx: ${item?.product?.sale_price} \n`;
+  });
+  checkContent += `---------------------------------\n`;
+  checkContent += `Jami: ${formatNumber(
+    data?.items.reduce((sum, item) => sum + item?.product?.sale_price * item.quantity, 0)
+  )} \n`;
+  
+  const newWindow = window.open("", "_blank");
+  newWindow.document.write(`<pre>${checkContent}</pre>`);
+  newWindow.document.close();
+  newWindow.print();
+};
+
+onMounted( async () =>{
+    await productsGet()
+    await salesget()
+})
 
 </script>
 <template>
@@ -74,45 +412,25 @@ const detailToggle = () =>{
                                 </svg>
                                 {{ changeFirstLetter(category.name) }}
                             </div>
-                            <div class="icon bg-orange-400 text-white">1</div>
                     </div>
                 </div>
 
                 <div class="sale_body w-full gap-4 p-5">
-                    <div class="salee shadow-lg p-2 cursor-pointer">
-                        <div @click="detailToggle" class="sum flex justify-between items-center">
-                            <span class="text-xl font-bold ">120.000.00</span>
-                            <span class="bg-green-400 text-white rounded-full px-2">karta</span>
+                    <div v-for="sale in sales" class="salee shadow-lg p-2 cursor-pointer">
+                        <div @click="detailToggle(sale)" class="sum flex justify-between items-center">
+                            <span class="text-xl font-bold ">{{ formatNumber(sale.total) }}</span>
+                            <span v-if="sale.debt < sale.total || sale.debt === sale.total"  class="bg-red-400 text-white rounded-full px-2">Qarz</span>
+                            <span v-else-if="sale.cash_payment > 0"  class="bg-red-400 text-white rounded-full px-2">Naqd</span>
+                            <span v-else-if="sale.card_payment > 0"  class="bg-red-400 text-white rounded-full px-2">Karta</span>
                         </div>
-                        <div class="sum text-gray-600">3/12/4550</div>
-                    </div>
-                    <div class="salee shadow-lg p-2 cursor-pointer">
-                        <div @click="detailToggle" class="sum flex justify-between items-center">
-                            <span class="text-xl font-bold ">120.000.00</span>
-                            <span class="bg-green-400 text-white rounded-full px-2">karta</span>
-                        </div>
-                        <div class="sum text-gray-600">3/12/4550</div>
-                    </div>
-                    <div class="salee shadow-lg p-2 cursor-pointer">
-                        <div @click="detailToggle" class="sum flex justify-between items-center">
-                            <span class="text-xl font-bold ">120.000.00</span>
-                            <span class="bg-green-400 text-white rounded-full px-2">karta</span>
-                        </div>
-                        <div class="sum text-gray-600">3/12/4550</div>
-                    </div>
-                    <div class="salee shadow-lg p-2 cursor-pointer">
-                        <div @click="detailToggle" class="sum flex justify-between items-center">
-                            <span class="text-xl font-bold ">120.000.00</span>
-                            <span class="bg-green-400 text-white rounded-full px-2">karta</span>
-                        </div>
-                        <div class="sum text-gray-600">3/12/4550</div>
+                        <div class="sum text-gray-600">{{ formatDateTime(sale.date_added) }}</div>
                     </div>
                 </div>
             </div>
             </div>
         </div>
     </div>
-    <SaleDetail :menu2="menu2"  @detailToggle="detailToggle"/>
+    <SaleDetail :menu2="menu2"  @detailToggle="detailToggle" :sale="saledetailObject"/>
     <div v-show="saleModal" class="sale_modal" id="saleModalOverlay">
         <div :class="{ 'modal-active': saleModal }" class="modal shadow-lg bg-white p-5 overflow-auto">
             <div class="header flex justify-between items-center">
@@ -126,7 +444,7 @@ const detailToggle = () =>{
                 </div>
                 <div class="buttons flex items-center gap-2">
                     <button onclick="window.location.reload()" class="px-2 py-2 text-white bg-red-500 rounded-lg shadow cursor-pointer shadow-md">Bekor qilish</button>
-                    <button class="py-2 px-2 text-white bg-black shadow rounded-lg  cursor-pointer shadow-md">Saqlash</button>
+                    <button @click="submitSale" class="py-2 px-2 text-white bg-black shadow rounded-lg  cursor-pointer shadow-md">Saqlash</button>
                 </div>
             </div>
             <div class="body mt-10">
@@ -163,24 +481,38 @@ const detailToggle = () =>{
                                         <th class="py-3 px-4 text-center">Miqdori</th>
                                         <th class="py-3 px-4 text-center">Narx $</th>
                                         <th class="py-3 px-4 text-center">Summa $</th>
+                                        <th class="py-3 px-4 text-center">Action $</th>
                                     </tr>
                                 </thead>
                                 <tbody>           <!-- Row -->
-                                    <tr class=" bg-white hover:bg-gray-100 cursor-pointer">
+                                    <tr v-for="(item, index) in saleObject.items" :key="index" class="bg-white hover:bg-gray-100 cursor-pointer">
                                         <td class="py-4 px-4 flex items-center gap-3">
-                                            <span class="text-gray-800 font-bold">ger</span>
-                                        </td>
-                                        <td  class="text-center">
-                                            <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
-                                                gre
-                                            </span>     
-                                        </td>
-                                        <td  class="text-center">
-                                            <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
-                                                gre
+                                            <span class="text-gray-800 font-bold">
+                                                {{ store.products.find(p => p.id === item.product_id)?.name || 'Noma\'lum' }}
                                             </span>
                                         </td>
-                                        <td class="text-center" ><span class="bg-red-100 text-black-600 px-3 py-1 ">gre</span></td>
+                                        <td class="text-center">
+                                            <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
+                                                {{ item.quantity }}
+                                            </span>     
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
+                                                {{ formatNumber(store.products.find(p => p.id === item.product_id)?.store_reports_in?.at(-1)?.sale_price || 0) }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="bg-red-100 text-black-600 px-3 py-1">
+                                                {{ formatNumber((store.products.find(p => p.id === item.product_id)?.store_reports_in?.at(-1)?.sale_price || 0) * item.quantity) }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                           <button class="py-2 px-2 bg-red-500 font-bold rounded" @click="removeFromSale(item.product_id)">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi bi-archive" viewBox="0 0 16 16">
+                                                    <path d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5zm13-3H1v2h14zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5"/>
+                                                </svg>
+                                           </button> 
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -209,30 +541,36 @@ const detailToggle = () =>{
                     <div v-if="debt === 'ha' " class="cheque py-2">
                         <div>Qabul qilingan summa *</div>
                         <div class="flex gap-2 py-4 justify-center items-center">
-                            <input type="text" class="w-full py-3 px-3"  value="34000" disabled>
+                            <input v-model="saleObject.debt_payment" type="number" class="w-full py-3 px-3">
                         </div>
                     </div>
                     <div v-if="debt === 'ha' " class="cheque py-2">
                         <div>Ism Familiya *</div>
                         <div class="flex gap-2 py-4 justify-center items-center">
-                            <input type="text" class="w-full py-3 px-3"  value="34000" disabled>
-                        </div>
+                            <input v-model="saleObject.client_name" type="text" class="w-full py-3 px-3">
+                        </div> 
                     </div>
                     <div v-if="debt === 'ha' " class="cheque py-2">
                         <div>Telefon *</div>
                         <div class="flex gap-2 py-4 justify-center items-center">
-                            <input type="text" class="w-full py-3 px-3"  value="34000" disabled>
+                            <input v-model="saleObject.client_number" type="text" class="w-full py-3 px-3">
+                        </div>
+                    </div>
+                    <div v-if="debt === 'ha' " class="cheque py-2">
+                        <div>Telefon 2*</div>
+                        <div class="flex gap-2 py-4 justify-center items-center">
+                            <input v-model="saleObject.client_number2" type="text" class="w-full py-3 px-3">
                         </div>
                     </div>
                     <div class="cheque py-5">
                         <div class="flex gap-2 py-4 justify-center items-center">
                             <button class='bg-green-500 text-white border-none px-2 flex-1 py-2 flex justify-center items-center gap-2 text-lg font-bold border rounded-lg cursor-pointer' style="width: 250px;">
                                 <span>Jami</span>
-                                <span>20000</span>
+                                <span>{{ formatNumber(saleObject.total) }}</span>
                             </button>
-                            <button  style="width: 250px;" class="bg-red-500 text-white border-none px-2 flex-1 py-2 flex justify-center items-center gap-2 font-bold text-lg border rounded-lg cursor-pointer">
+                            <button v-if="debt === 'ha' " style="width: 250px;" class="bg-red-500 text-white border-none px-2 flex-1 py-2 flex justify-center items-center gap-2 font-bold text-lg border rounded-lg cursor-pointer">
                                 <span>Qarz</span>
-                                <span>200000</span>
+                                <span>{{ formatNumber(saleObject.total - saleObject.debt_payment) }}</span>
                             </button>
                         </div>
                     </div>
@@ -254,41 +592,70 @@ const detailToggle = () =>{
                 </div>
                 <div class="buttons flex items-center gap-2">
                     <button @click="cartModal = false" class="px-2 py-2 text-white bg-red-600 rounded-lg shadow cursor-pointer shadow-md">Bekor qilish</button>
-                    <button class="py-2 px-2 text-white bg-green-400 shadow rounded-lg  cursor-pointer shadow-md">Saqlash</button>
+                    <button @click="addToSale" class="py-2 px-2 text-white bg-green-400 shadow rounded-lg  cursor-pointer shadow-md">Saqlash</button>
                 </div>
             </div>
             <form class="body mt-10 px-4">
-                <div class="cheque py-5">
-                    <div>Scan *</div>
-                    <div class="flex gap-2 py-4 justify-center items-center">
-                       <input type="text" class="w-full py-3 px-3" autofocus>
-                    </div>
-                </div>
-                <div class="cheque">
-                    <div>Mahsulot *</div>
-                    <div class="flex gap-2 py-4 justify-center items-center">
-                       <input type="button" class="w-full py-3 px-3 text-white bg-green-600 rounded font-bold" value="Hydrolife(1L)">
-                    </div>
-                </div>
-                <div class="cheque ">
-                    <div>Miqdori *</div>
-                    <div class="flex gap-2 py-4 justify-center items-center">
-                       <input type="text" class="w-full py-3 px-3" >
-                    </div>
-                </div>
-                <div class="cheque ">
-                    <div>Narx *</div>
-                    <div class="flex gap-2 py-4 justify-center items-center">
-                       <input type="text" class="w-full py-3 px-3" >
-                    </div>
-                </div>
-                <div class="cheque ">
-                    <div>Jami Summa *</div>
-                    <div class="flex gap-2 py-4 justify-center items-center">
-                       <input type="text" class="w-full py-3 px-3" >
-                    </div>
-                </div>
-            </form>
+      <div class="cheque py-5">
+        <div>Scan *</div>
+        <div class="flex gap-2 py-4 justify-center items-center">
+          <input type="text" @input="scannedProduct" v-model="scanInput" class="w-full py-3 px-3" autofocus>
+        </div>
+      </div>
+      
+      <div class="cheque">
+        <div>Mahsulot *</div>
+        <div class="flex gap-2 py-4 justify-center items-center">
+          <div v-if="foundProduct" class="w-full py-3 px-3 text-black bg-yellow-500 rounded text-center font-bold">
+            {{ foundProduct?.name }}({{ foundProduct?.category?.name }})
+          </div>
+          <div v-else class="w-full py-3 px-3 text-black bg-yellow-500 rounded text-center font-bold">
+            Mahsulot tanlanmagan
+          </div>
+        </div>
+      </div>
+
+      <div class="cheque" v-if="foundProduct && availableReports.length > 0">
+        <div>Partiya tanlang *</div>
+        <div class="flex flex-col gap-2 py-4">
+          <div v-for="report in availableReports" :key="report.id" 
+               @click="selectedReport = report"
+               :class="['p-3 border rounded cursor-pointer', selectedReport?.id === report.id ? 'bg-blue-100 border-blue-500' : '']">
+            <div class="flex justify-between">
+              <span>Narx: {{ formatNumber(report.sale_price) }}</span>
+              <span>Mavjud: {{ report.quantity_left }}</span>
+            </div>
+            <div>Sana: {{ new Date(report.date_added).toLocaleDateString() }}</div>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="foundProduct" class="cheque py-4">
+        <div class="text-red-500">Bu mahsulot uchun mavjud partiyalar yo'q!</div>
+      </div>
+
+      <div class="cheque">
+        <div class="flex items-center justify-between">
+            <span>Miqdori *</span>
+            <span v-if="selectedReport" class="text-sm text-gray-500">
+                Mavjud: {{ selectedReport.quantity_left }}
+            </span>
+        </div>
+        <div class="flex gap-2 py-4 justify-center items-center">
+          <input v-model.number="newItem.quantity" type="number" class="w-full py-3 px-3" 
+                 :max="selectedReport?.quantity_left || 0">
+          
+        </div>
+      </div>
+      
+      <div class="cheque" v-if="selectedReport && newItem.quantity > 0">
+        <div>Jami *</div>
+        <div class="flex gap-2 py-4 justify-center items-center">
+          <div class="w-full py-3 px-3 text-black bg-yellow-500 rounded text-center font-bold">
+            {{ formatNumber(selectedReport.sale_price * newItem.quantity) }}
+          </div>
+        </div>
+      </div>
+    </form>
         </div>
     </div>
 </template>
