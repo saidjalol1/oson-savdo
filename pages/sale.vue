@@ -18,19 +18,21 @@ const scanInput = ref("")
 const foundProduct = ref({})
 const saledetailObject = ref({})
 const data = ref({})
-
-const categories = ref(
-    [
-    {"name":"Hammasi"},
-    {"name":"Naqd"},
-    {"name":"Karta"},
-    {"name":"Qarz"},
-    ]
-)
+const selectedDate = ref(null)
+const searchQuery = ref("")
+const currentPage = ref(1)
+const itemsPerPage = ref(10)
+const categories = ref([
+    {"name": "Hammasi", "type": "all"},
+    {"name": "Naqd", "type": "cash"},
+    {"name": "Karta", "type": "card"},
+    {"name": "Qarz", "type": "debt"}
+])
 
 const newItem = ref({
-    product_id: foundProduct?.value?.id,
-    quantity: 0
+    product_id: null,
+    quantity: 0,
+    report_id: null,
 });
 
 const saleObject = ref({
@@ -38,6 +40,9 @@ const saleObject = ref({
   card_payment: 0,
   cash_payment: 0,
   debt_payment: 0,
+  client_name: "",
+  client_number: "",
+  client_number2: "",
   total: 0,
   debt: 0,
   items: []
@@ -48,6 +53,60 @@ const selectedReport = ref(null);
 const availableReports = computed(() => {
   return foundProduct.value?.store_reports_in || [];
 });
+
+const filteredSales = computed(() => {
+    // First make a copy of the sales array
+    let filtered = [...sales.value];
+    
+    // Sort by date_added (newest first)
+    filtered.sort((a, b) => new Date(b.date_added) - new Date(a.date_added));
+    
+    // Then apply your existing filters
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
+        filtered = filtered.filter(sale => 
+            sale.client_name?.toLowerCase().includes(query)
+        );
+    }
+    
+    if (selectedDate.value) {
+        const filterDate = new Date(selectedDate.value).toDateString();
+        filtered = filtered.filter(sale => {
+            const saleDate = new Date(sale.date_added).toDateString();
+            return saleDate === filterDate;
+        });
+    }
+    
+    if (selectedCategory.value) {
+        const category = categories.value.find(c => c.type === selectedCategory.value);
+        
+        if (category) {
+            switch(category.type) {
+                case 'cash':
+                    filtered = filtered.filter(sale => sale.cash_payment > sale.card_payment);
+                    break;
+                case 'card':
+                    filtered = filtered.filter(sale => sale.card_payment > sale.cash_payment);
+                    break;
+                case 'debt':
+                    filtered = filtered.filter(sale => sale.debt !== sale.total);
+                    break;
+            }
+        }
+    }
+    
+    return filtered;
+});
+
+const paginatedSales = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage.value
+    const end = start + itemsPerPage.value
+    return filteredSales.value.slice(start, end)
+})
+
+const totalPages = computed(() => {
+    return Math.ceil(filteredSales.value.length / itemsPerPage.value)
+})
 
 const validateQuantity = (quantity, report) => {
   if (!report) return false;
@@ -78,26 +137,20 @@ const addToSale = () => {
 
   const itemTotal = selectedReport.value.sale_price * parseInt(newItem.value.quantity);
 
+
   if (existingItem) {
-    // Check if adding more would exceed available quantity
-    const newTotalQuantity = existingItem.quantity + parseInt(newItem.value.quantity);
-    if (newTotalQuantity > selectedReport.value.quantity_left) {
-      alert(`Jami miqdor mavjud miqdordan oshib ketdi! Mavjud miqdor: ${selectedReport.value.quantity_left}`);
-      return;
-    }
-    
-    existingItem.quantity = newTotalQuantity;
+    existingItem.quantity += parseInt(newItem.value.quantity);
     saleObject.value.total += itemTotal;
   } else {
-    // If not found, push new item with report_id
     saleObject.value.items.push({
       product_id: foundProduct.value.id,
       report_id: selectedReport.value.id,
       quantity: parseInt(newItem.value.quantity),
-      price: selectedReport.value.sale_price
+      price: selectedReport.value.sale_price // Store the actual price from selected report
     });
     saleObject.value.total += itemTotal;
   }
+
 
   // Update the selected report's available quantity in the UI
   selectedReport.value.quantity_left -= parseInt(newItem.value.quantity);
@@ -105,24 +158,21 @@ const addToSale = () => {
   // Clear temporary values
   newItem.value = {
     product_id: null,
-    quantity: 0
+    quantity: 0,
+    report_id: null
   };
   foundProduct.value = {};
-  selectedReport.value = null;
+  selectedReport.value = {};
   scanInput.value = "";
   
   cartModal.value = false;
 };
 
-const removeFromSale = (productId) => {
-  const index = saleObject.value.items.findIndex(item => item.product_id === productId);
-  if (index !== -1) {
-    const item = saleObject.value.items[index];
-    const product = store.value.products.find(p => p.id === productId);
-    const itemPrice = product?.store_reports_in?.at(-1)?.sale_price || 0;
-    
-    saleObject.value.total -= itemPrice * item.quantity;
-    saleObject.value.items.splice(index, 1);
+const removeFromSale = (itemIndex) => {
+  if (itemIndex >= 0 && itemIndex < saleObject.value.items.length) {
+    const item = saleObject.value.items[itemIndex];
+    saleObject.value.total -= item.price * item.quantity;
+    saleObject.value.items.splice(itemIndex, 1);
   }
 };
 
@@ -137,7 +187,6 @@ const clearSale = () => {
     items: []
   };
 };
-
 
 const productsGet = async () => {
   try {
@@ -186,9 +235,7 @@ watch(scanInput, (value) => {
 watch(() => saleObject.value.items, (newItems) => {
   let newTotal = 0;
   newItems.forEach(item => {
-    const product = store.value.products.find(p => p.id === item.product_id);
-    const price = product?.store_reports_in?.at(-1)?.sale_price || 0;
-    newTotal += price * item.quantity;
+    newTotal += item.price * item.quantity;
   });
   saleObject.value.total = newTotal;
 }, { deep: true });
@@ -210,11 +257,14 @@ const submitSale = async () => {
         card_payment: saleObject.value.card_payment,
         cash_payment: saleObject.value.cash_payment,
         debt_payment: saleObject.value.debt_payment,
+        client_name: saleObject.value.client_name,
+        client_number: saleObject.value.client_number,
+        client_number2: saleObject.value.client_number2,
         total: saleObject.value.total,
         debt: saleObject.value.total - saleObject.value.debt_payment,
         items: saleObject.value.items.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity
+            product_id: item.report_id,
+            quantity: item.quantity,
         }))
       })
     });
@@ -253,6 +303,19 @@ const submitSale = async () => {
    
   } catch (error) {
     console.error("Sotuvda xatolik:", error);
+    console.log(JSON.stringify({
+        store_id: saleObject.value.store_id,
+        card_payment: saleObject.value.card_payment,
+        cash_payment: saleObject.value.cash_payment,
+        debt_payment: saleObject.value.debt_payment,
+        total: saleObject.value.total,
+        debt: saleObject.value.total - saleObject.value.debt_payment,
+        items: saleObject.value.items.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          report_id : item.report_id
+        }))
+      }));
     
     // User-friendly error messages
     let userMessage = "Sotuvni amalga oshirishda xatolik";
@@ -317,13 +380,16 @@ const changeFirstLetter = (word) =>{
     return `${word[0].toUpperCase()}${word.slice(1)}`
 }
 const setActive = (index) => {
-  activeIndex.value = index;
-  selectedCategory.value = categories.value[index]?.id || null;
+    activeIndex.value = index;
+    selectedCategory.value = categories.value[index]?.type || null;
 };
-
 const detailToggle = (object) =>{
     menu2.value = !menu2.value
     saledetailObject.value = object
+}
+
+const productUpdated = async ()=>{
+   await salesget()
 }
 
 const calculatePayments = () => {
@@ -353,26 +419,59 @@ const calculatePayments = () => {
   }
 };
 
-
 const printCheck = () => {
-  let checkContent = `\nCHEK RAQAMI: ${data?.id}\n`;
+  let checkContent = `\nCHEK RAQAMI: ${data.value?.id}\n`;
+  console.log(data.value);
+  
   checkContent += `SANA: ${new Date().toLocaleDateString()}\n`;
   checkContent += `---------------------------------\n`;
-  data?.items.forEach((item, index) => {
+  data.value?.items.forEach((item, index) => {
     checkContent += `${index + 1}. ${item?.product?.product?.name}\n`;
-    checkContent += `  Miqdor: ${item?.quantity} | Narx: ${item?.product?.sale_price} \n`;
+    checkContent += `  Miqdor: ${item?.quantity} | Narx: ${formatNumber(item?.product?.sale_price)} \n`;
   });
   checkContent += `---------------------------------\n`;
-  checkContent += `Jami: ${formatNumber(
-    data?.items.reduce((sum, item) => sum + item?.product?.sale_price * item.quantity, 0)
-  )} \n`;
+  checkContent += `Kassir: ${ data.value?.owner?.name} ${data.value?.owner?.surname}\n`;
+  checkContent += `Jami: ${formatNumber(data.value?.total)} \n`;
   
   const newWindow = window.open("", "_blank");
   newWindow.document.write(`<pre>${checkContent}</pre>`);
   newWindow.document.close();
   newWindow.print();
 };
+watch([searchQuery, selectedDate, selectedCategory], () => {
+    currentPage.value = 1
+})
+const visiblePages = computed(() => {
+    const total = totalPages.value
+    const current = currentPage.value
+    const range = 2 // Number of pages to show before/after current
+    const pages = []
 
+    // Always show first page
+    pages.push(1)
+
+    // Add ellipsis if needed after first page
+    if (current - range > 2) {
+        pages.push('...')
+    }
+
+    // Add pages around current page
+    for (let i = Math.max(2, current - range); i <= Math.min(total - 1, current + range); i++) {
+        pages.push(i)
+    }
+
+    // Add ellipsis if needed before last page
+    if (current + range < total - 1) {
+        pages.push('...')
+    }
+
+    // Always show last page if different from first
+    if (total > 1) {
+        pages.push(total)
+    }
+
+    return pages
+})
 onMounted( async () =>{
     await productsGet()
     await salesget()
@@ -387,15 +486,29 @@ onMounted( async () =>{
         <div class="w-full">
             <Header @menuToggle="toggleMenu"/>
             <div class="page_body w-full h-[calc(100vh-65px)]">
-            <div class="page_title bg-white flex justify-between items-center px-5">
+              <div class="page_title bg-white flex justify-between items-center px-5">
                 <div class="text-2xl font-bold px-3 bg-white py-3">
-                    Sotuv
+                  Sotuv
                 </div>
                 <div class="flex gap-5">
-                    <input type="date" placeholder="Qidiruv" class="text-center py-2 px-10 bg-gray-100" style="border-radius: 6px;border: 0px solid white !important;">
-                    <button @click="toggleSaleModal" class="py-2 px-4 bg-black text-white rounded-lg cursor-pointer">+ Qo'shish</button>
+                  <input   
+                    v-model="searchQuery" 
+                    type="text" 
+                    class="text-center py-2 px-10 bg-gray-100" 
+                    style="border-radius: 6px;border: 0px solid white !important;"
+                    placeholder="Klient bo'yicha qidiruv"
+                  >
+                  <input   
+                    v-model="selectedDate" 
+                    type="date" 
+                    class="text-center py-2 px-10 bg-gray-100" 
+                    style="border-radius: 6px;border: 0px solid white !important;"
+                  >
+                  <button @click="toggleSaleModal" class="py-2 px-4 bg-black text-white rounded-lg cursor-pointer">
+                    + Qo'shish
+                  </button>
                 </div>
-            </div>
+              </div>
             <div class="store_body h-[calc(100vh-120px)] flex">
                 <div class="categories py-4 px-2">
                     <div
@@ -415,22 +528,64 @@ onMounted( async () =>{
                     </div>
                 </div>
 
-                <div class="sale_body w-full gap-4 p-5">
-                    <div v-for="sale in sales" class="salee shadow-lg p-2 cursor-pointer">
-                        <div @click="detailToggle(sale)" class="sum flex justify-between items-center">
-                            <span class="text-xl font-bold ">{{ formatNumber(sale.total) }}</span>
-                            <span v-if="sale.debt < sale.total || sale.debt === sale.total"  class="bg-red-400 text-white rounded-full px-2">Qarz</span>
-                            <span v-else-if="sale.cash_payment > 0"  class="bg-red-400 text-white rounded-full px-2">Naqd</span>
-                            <span v-else-if="sale.card_payment > 0"  class="bg-red-400 text-white rounded-full px-2">Karta</span>
-                        </div>
-                        <div class="sum text-gray-600">{{ formatDateTime(sale.date_added) }}</div>
+                <div class=" w-full gap-4 p-5">
+                  <div class="sale_body">
+                    <div v-for="sale in paginatedSales" @click="detailToggle(sale)" class="salee shadow-lg p-2 cursor-pointer">
+                      <div  class="sum flex justify-between items-center">
+                        <span class="text-xl font-bold ">{{ formatNumber(sale.total) }}</span>
+                        <span 
+                        v-if="sale.debt > 0"  
+                        class="bg-red-500 text-white rounded-full px-2"
+                        >
+                          Qarz: {{ formatNumber(sale.debt) }}
+                        </span>
+                        <span 
+                          v-else-if="sale.cash_payment > sale.card_payment"  
+                          class="bg-green-400 text-white rounded-full px-2"
+                          >
+                          Naqd
+                        </span>
+                        <span 
+                          v-else-if="sale.card_payment > sale.cash_payment"  
+                          class="bg-blue-400 text-white rounded-full px-2"
+                          >
+                          Karta
+                        </span>
+                      </div>
+                      <div class="sum text-gray-600">{{ formatDateTime(sale.date_added) }}</div>
+                      <div v-if="sale.debt > 0" class="sum text-white mt-2 bg-red-500 px-2 rounded-full">{{ sale.client_name }}</div>
                     </div>
+                  </div>
+                  <div class="pagination flex justify-center items-center gap-2 py-4 ">
+                      <button @click="currentPage = currentPage - 1"  :disabled="currentPage === 1"
+                          class="px-3 py-1 rounded bg-gray-200 disabled:opacity-50 hover:bg-gray-300 transition">&lt;
+                      </button>
+    
+                      <div v-for="(page, index) in visiblePages" :key="index">
+                        <span v-if="page === '...'" class="px-3 py-1">{{ page }}</span>
+                        <button v-else @click="currentPage = page"
+                            class="px-3 py-1 rounded cursor-pointer hover:bg-gray-300 transition"
+                            :class="{'bg-yellow-500 text-white hover:bg-yellow-600': currentPage === page}">{{ page }}
+                        </button>
+                      </div>
+    
+                      <button 
+                          @click="currentPage = currentPage + 1" 
+                          :disabled="currentPage === totalPages"
+                          class="px-3 py-1 rounded bg-gray-200 disabled:opacity-50 hover:bg-gray-300 transition">&gt;
+                      </button>
+                  </div>
                 </div>
+              
+              </div>
+              
             </div>
-            </div>
+            
         </div>
+        
     </div>
-    <SaleDetail :menu2="menu2"  @detailToggle="detailToggle" :sale="saledetailObject"/>
+    
+    <SaleDetail :menu2="menu2"  @detailToggle="detailToggle" @productUpdated="productUpdated" :sale="saledetailObject"/>
     <div v-show="saleModal" class="sale_modal" id="saleModalOverlay">
         <div :class="{ 'modal-active': saleModal }" class="modal shadow-lg bg-white p-5 overflow-auto">
             <div class="header flex justify-between items-center">
@@ -498,20 +653,20 @@ onMounted( async () =>{
                                         </td>
                                         <td class="text-center">
                                             <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
-                                                {{ formatNumber(store.products.find(p => p.id === item.product_id)?.store_reports_in?.at(-1)?.sale_price || 0) }}
+                                                {{ formatNumber(item.price) }}
                                             </span>
                                         </td>
                                         <td class="text-center">
                                             <span class="bg-red-100 text-black-600 px-3 py-1">
-                                                {{ formatNumber((store.products.find(p => p.id === item.product_id)?.store_reports_in?.at(-1)?.sale_price || 0) * item.quantity) }}
+                                                {{ formatNumber(item.price * item.quantity) }}
                                             </span>
                                         </td>
                                         <td class="text-center">
-                                           <button class="py-2 px-2 bg-red-500 font-bold rounded" @click="removeFromSale(item.product_id)">
+                                          <button class="py-2 px-2 bg-red-500 font-bold rounded" @click="removeFromSale(index)">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi bi-archive" viewBox="0 0 16 16">
                                                     <path d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5zm13-3H1v2h14zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5"/>
                                                 </svg>
-                                           </button> 
+                                          </button>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -747,6 +902,23 @@ input{
     outline: 1px solid gray;
     border-radius: 6px;
 }
+.pagination {
+    margin-top: 20px;
+    user-select: none;
+}
 
+.pagination button, .pagination span {
+    min-width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    border-radius: 6px;
+}
+
+.pagination button:not(:disabled) {
+    cursor: pointer;
+}
 
 </style>

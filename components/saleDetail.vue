@@ -2,14 +2,21 @@
 import { formatNumber } from 'chart.js/helpers';
 import { ref, onMounted, defineEmits } from 'vue';
 
+
+const config = useRuntimeConfig()
 const error = ref("")
+const editModal = ref(false)
 const error_modal = ref(false)
+const activButton = ref("naqd")
+const paymentSale = ref(0)
+
 const props = defineProps({
     menu2: Boolean,
     sale: Object
 })
 
-const emit = defineEmits(['detailToggle']);
+const deleteModal = ref(false)
+const emit = defineEmits(['detailToggle', 'productUpdated']);
 const formatDateTime = (dateStr) => {
   const date = new Date(dateStr)
   return date.toLocaleString('en-US', {
@@ -25,9 +32,130 @@ const formatDateTime = (dateStr) => {
 const detailToggle = () => {
     emit('detailToggle');
 };
+
+const editModalOpen = () =>{
+    if (props.sale.debt === props.sale.total){
+        error.value = "To'lab bo'lingan"
+        error_modal.value = true
+    }else{
+        editModal.value = true
+    }
+}
+
+
+const deleteSale = async (sale_id) => {
+  try {
+    const response = await fetch(`${config.public.apiBase}/sale-delete`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `bearer ${localStorage.getItem("tokenOson")}`
+      },
+      body: JSON.stringify({
+        id:parseInt(sale_id),
+      }),
+
+    });
+   
+    if (!response.ok) {
+      if (response.status === 401) {
+        route.push("/login");
+      }
+      
+      throw new Error("Tarmoqda Xatolik, Sahifani yangilang");
+    }
+
+    emit('productUpdated'); 
+    detailToggle()
+    deleteModal.value = false
+  } catch (error) {
+    console.log(error);
+    
+    alert("Malumotlarni olishda Xatolik:", error);
+  }
+};
+
+const salePayForm = async () => {
+
+    const paymentAmount = Number(paymentSale.value);
+  
+  // Validate payment amount
+  if (paymentAmount <= 0) {
+    error.value = "To'lov miqdori 0 dan katta bo'lishi kerak";
+    error_modal.value = true;
+    return;
+  }
+
+  if (paymentAmount > props.sale.debt) {
+    error.value = `To'lov miqdori qarzdan (${formatNumber(props.sale.debt)}) ko'p bo'lmasligi kerak`;
+    error_modal.value = true;
+    return;
+  }
+
+  try {
+    const response = await fetch(`${config.public.apiBase}/salepay`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `bearer ${localStorage.getItem("tokenOson")}`
+      },
+      body: JSON.stringify({
+        id:props.sale?.id,
+        payment: paymentAmount,
+        payment_type: activButton.value
+      }),
+
+    });
+   
+    if (!response.ok) {
+      if (response.status === 401) {
+        route.push("/login");
+      }
+      
+      throw new Error("Tarmoqda Xatolik, Sahifani yangilang");
+    }
+    
+    window.location.reload()
+  } catch (error) {
+    console.log(error);
+    
+    alert("Malumotlarni olishda Xatolik:", error);
+  }
+};
+
+const validatePaymentInput = () => {
+  // Ensure the value is a positive number
+  if (paymentSale.value < 0) {
+    paymentSale.value = 0;
+  }
+  // Ensure the value doesn't exceed the debt
+  if (paymentSale.value > props.sale.debt) {
+    paymentSale.value = props.sale.debt;
+  }
+};
+
+const printCheck = () => {
+  let checkContent = `\nCHEK RAQAMI: ${props.sale.id}\n`;
+  console.log(props.sale);
+  
+  checkContent += `SANA: ${new Date().toLocaleDateString()}\n`;
+  checkContent += `---------------------------------\n`;
+  props.sale.items.forEach((item, index) => {
+    checkContent += `${index + 1}. ${item?.product?.product?.name}\n`;
+    checkContent += `  Miqdor: ${item?.quantity} | Narx: ${formatNumber(item?.product?.sale_price)} \n`;
+  });
+  checkContent += `---------------------------------\n`;
+  checkContent += `Kassir: ${ props.sale.owner.name} ${props.sale.owner?.surname}\n`;
+  checkContent += `Jami: ${formatNumber(props.sale.total)} \n`;
+  
+  const newWindow = window.open("", "_blank");
+  newWindow.document.write(`<pre>${checkContent}</pre>`);
+  newWindow.document.close();
+  newWindow.print();
+};
 </script>
 <template>
-    <div v-if="error_modal" class="overal" style="z-index: 1000;">
+    <div v-if="error_modal" class="overal" style="z-index: 1200;">
         <div class="modal shadow-xl px-10 py-4">
             <div class="modal-head flex justify-between items-center ">
                 <div class="font-bold text-2xl">Xatolik</div>
@@ -58,7 +186,7 @@ const detailToggle = () => {
             </div>
             <div class="flex flex-col gap-6 px-5 py-5 ">
                 <div class="flex  gap-8 w-full py-4 items-center justify-start">
-                    <div class="icon_text flex items-center flex-col ">
+                    <div @click="printCheck" class="icon_text flex items-center flex-col ">
                         <span class="bg-black py-2 px-4 rounded-lg hover:shadow-xl cursor-pointer flex items-center justify-center">
                             <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="white" class="bi bi-file-earmark-pdf" viewBox="0 0 16 16">
                                 <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
@@ -67,7 +195,7 @@ const detailToggle = () => {
                         </span>
                         <span class="text-sm text-gray-500 mt-2">Chek</span>
                     </div>
-                    <div class="icon_text flex items-center flex-col">
+                    <div @click="deleteModal = true" class="icon_text flex items-center flex-col">
                         <span class="bg-red-600 py-2 px-4 rounded-lg hover:shadow-xl cursor-pointer flex items-center justify-center">
                             <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="white" class="bi bi-trash3" viewBox="0 0 16 16">
                                 <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/>
@@ -75,7 +203,15 @@ const detailToggle = () => {
                         </span>
                         <span class="text-sm text-gray-500 mt-2">O'chirish</span>
                     </div>
-                
+                    <div @click="editModalOpen" class="icon_text flex items-center flex-col ">
+                        <span class="bg-yellow-400 py-2 px-4 rounded-lg hover:shadow-xl cursor-pointer flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="white" class="bi bi-credit-card-2-front" viewBox="0 0 16 16">
+                                <path d="M14 3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/>
+                                <path d="M2 5.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5"/>
+                            </svg>
+                        </span>
+                        <span class="text-sm text-gray-500 mt-2">To'lov</span>
+                    </div>
                     
                 </div>
                 <div class="w-full" style="height: 400px; overflow: auto;">
@@ -100,7 +236,7 @@ const detailToggle = () => {
                                 </td>
                                 <td  class="text-center">
                                     <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
-                                        {{ item?.product?.sale_price }}
+                                        {{ formatNumber(item?.product?.sale_price) }}
                                     </span>
                                 </td>
                                 <td class="text-center" ><span class="bg-red-100 text-black-600 px-3 py-1 ">{{ formatNumber(item?.product?.sale_price * item.quantity) }}</span></td>
@@ -112,18 +248,40 @@ const detailToggle = () => {
             <div class="px-5 mt-4 flex flex-col gap-4 flex-wrap">
                 <hr>
                 <div class="data-detail flex justify-between gap-10">
-                    <div class="data-title text-lg text-gray-600">Kassa</div>
+                    <div class="data-title text-lg text-gray-600">Naqd to'lov</div>
                     <div class="flex items-center gap-2 font-bold text-orange-600">                          
                         <span>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-wallet2" viewBox="0 0 16 16">
                                 <path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.432-1.499zM5.562 3H13V1.78a.5.5 0 0 0-.621-.484zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5z"/>
                             </svg>
                         </span>
-                        <span v-if="sale.debt < sale.total || sale.debt === sale.total">Qarz</span>
-                        <span v-else-if="sale.cash_payment > 0">Naqd</span>
-                        <span v-else-if="sale.card_payment > 0">Karta</span>
+                        <span>{{  formatNumber(sale.cash_payment ) }}</span>
                     </div>
                 </div>
+                <div class="data-detail flex justify-between gap-10">
+                    <div class="data-title text-lg text-gray-600">Karta to'lov</div>
+                    <div class="flex items-center gap-2 font-bold text-orange-600">                          
+                        <span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-wallet2" viewBox="0 0 16 16">
+                                <path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.432-1.499zM5.562 3H13V1.78a.5.5 0 0 0-.621-.484zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5z"/>
+                            </svg>
+                        </span>
+                        <span>{{  formatNumber(sale.card_payment ) }}</span>
+                    </div>
+                </div>
+                <div class="data-detail flex justify-between gap-x-10 gap-y-6">
+                    <div class="data-title text-lg text-gray-600">
+                        Qarz
+                    </div>
+                    <div class="flex items-center gap-2 font-bold text-red-500">                          
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-credit-card" viewBox="0 0 16 16">
+                            <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v1h14V4a1 1 0 0 0-1-1zm13 4H1v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1z"/>
+                                <path d="M2 10a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                        </svg>
+                        <span>{{ formatNumber(sale.debt)}}</span>
+                    </div>
+                </div>
+                <hr>
                 <div class="data-detail flex justify-between gap-x-10 gap-y-6">
                     <div class="data-title text-lg text-gray-600">
                         Qo'shilgan vaqt
@@ -150,17 +308,115 @@ const detailToggle = () => {
                     </div>
                 </div>
                 <div class="data-detail flex justify-between gap-x-10 gap-y-6">
-                    <div class="data-title text-lg text-gray-600">
-                        Qarz
+                    <div class="data-title text-lg text-blue-600">
+                        Qarzdor shaxs
                     </div>
-                    <div class="flex items-center gap-2 font-bold text-red-500">                          
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-credit-card" viewBox="0 0 16 16">
-                            <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v1h14V4a1 1 0 0 0-1-1zm13 4H1v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1z"/>
-                                <path d="M2 10a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                    <div class="flex items-center gap-2 font-bold text-red-800">                          
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
+                            <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z"/>
                         </svg>
-                        <span>{{ formatNumber(sale.debt)}}</span>
+                        <span>{{ sale?.client_name }} | </span>
+                        <span>{{ sale?.client_number }} | </span>
+                        <span>{{ sale?.client_number2 }}</span>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    <div class="overlay flex justify-center items-center" v-if="deleteModal">
+        <div class="delete_modal">
+            <div class="page_title bg-white flex justify-between items-center px-5">
+                <div  class="text-2xl font-bold px-3 bg-white py-3 flex items-center gap-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
+                        <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/>
+                    </svg>
+                    O'chirish
+                </div>
+                <div class="flex gap-5">
+                    <button @click="deleteModal = false" class="py-2 px-4 bg-black text-white rounded-lg cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="white" class="bi bi-x" viewBox="0 0 16 16">
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="body p-5">
+                <div class="text text-center">
+                    Sotuvni o'chirsangiz unga aloqador barcha hisobotlar o'chadi !!!
+                    - ishchilar statistikasi
+                </div>
+                <div class="flex gap-x-2 justify-center mt-8">
+                    <button  @click="deleteSale(sale.id)" class="py-2 px-4 shadow-md bg-red-600 cursor-pointer text-white rounded-lg cursor-pointer">
+                        O'chirish
+                    </button>
+                    <button  @click="deleteModal = false" class="py-2 px-4 shadow-md bg-black cursor-pointer text-white rounded-lg cursor-pointer">
+                        Yopish
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="overlay" v-if="editModal">
+        <div class="modal menu_2">
+            <div class="page_title bg-white flex justify-between items-center px-5">
+                <div class="text-2xl font-bold px-3 bg-white py-3 flex items-center gap-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-pen-fill" viewBox="0 0 16 16">
+                        <path d="m13.498.795.149-.149a1.207 1.207 0 1 1 1.707 1.708l-.149.148a1.5 1.5 0 0 1-.059 2.059L4.854 14.854a.5.5 0 0 1-.233.131l-4 1a.5.5 0 0 1-.606-.606l1-4a.5.5 0 0 1 .131-.232l9.642-9.642a.5.5 0 0 0-.642.056L6.854 4.854a.5.5 0 1 1-.708-.708L9.44.854A1.5 1.5 0 0 1 11.5.796a1.5 1.5 0 0 1 1.998-.001"/>
+                    </svg>
+                    To'lov
+                </div>
+                <div class="flex gap-5">
+                    <button @click="editModal = false" class="py-2 px-4 bg-black text-white rounded-lg cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="white" class="bi bi-x" viewBox="0 0 16 16">
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="body p-5">
+                <form @submit.prevent="salePayForm">
+                    <div class="form_group flex flex-col">
+                        <span class="font-bold mb-2 text-xl">To'lov *</span>
+                        <input type="number"  @input="validatePaymentInput" v-model="paymentSale"  class="py-3 px-4 text-xl border border-gray-300 rounded-lg" >
+                    </div>
+                    <div class="cheque py-5">
+                        <div class="text-xl font-bold">Kassa *</div>
+                        <div class="flex gap-2 py-4 justify-center items-center">
+                            <button type="button" @click="activButton = 'naqd' "  :class="['px-2 flex-1 py-2 flex justify-center items-center gap-2 text-lg font-bold border border-gray-400 rounded-lg cursor-pointer', activButton === 'naqd' ? 'bg-yellow-400 border-none text-white' : '']" style="width: 250px;">
+                                <span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-wallet2" viewBox="0 0 16 16">
+                                        <path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.432-1.499zM5.562 3H13V1.78a.5.5 0 0 0-.621-.484zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5z"/>
+                                    </svg>
+                                </span>
+                                <span>Naqd</span>
+                            </button>
+                            <button type="button" @click="activButton = 'card'" style="width: 250px;" :class="['px-2 flex-1 py-2 flex justify-center items-center gap-2 text-lg font-bold border border-gray-400 rounded-lg cursor-pointer', activButton === 'card' ? 'bg-yellow-400 border-none text-white' : '']">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-credit-card-2-back" viewBox="0 0 16 16">
+                                    <path d="M11 5.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5z"/>
+                                    <path d="M2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm13 2v5H1V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1m-1 9H2a1 1 0 0 1-1-1v-1h14v1a1 1 0 0 1-1 1"/>
+                                </svg>
+                                <span>Karta</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="cheque flex justify-between">
+                        <div  class="text-green-400 font-bold">
+                            Jami: ({{ formatNumber(sale.total) }})
+                        </div>
+                        <div  class="text-red-500 font-bold">
+                            Qarz: ({{ formatNumber(sale.debt) }})
+                        </div>
+                    </div>
+                    <div class="form_group flex justify-end gap-x-4 mt-5">
+                        <button type="submit" class="py-2 px-4 bg-black bg-yellow-400 text-white rounded-lg cursor-pointer">
+                            Saqlash
+                        </button>
+                        <button @click="editModal = false" class="py-2 px-4 bg-black text-white rounded-lg cursor-pointer">
+                            Yopish
+                        </button>
+                    </div>
+
+                </form>
             </div>
         </div>
     </div>
@@ -168,8 +424,8 @@ const detailToggle = () => {
 <style scoped>
 .overal{
     width: 100%;
-    height: 100%;
-    position: fixed;
+    min-height: 100%;
+    position: absolute;
     top: 0;
     background-color: rgba(128, 128, 128, 0.699);
     display: flex;
@@ -188,7 +444,12 @@ const detailToggle = () => {
     border-radius: 10px;
     overflow: auto;
 }
-
+.delete_modal{
+    width: 400px;
+    height: 300px;
+    background-color: white;
+    z-index: 1000;
+}
 .new{
     padding: 15px;
     border: 1px solid #ccc;
@@ -205,7 +466,15 @@ const detailToggle = () => {
     font-size: 16px;
     color: gray;
 }
-
+.overlay{
+    width: 100%;
+    height: 100%;
+    background-color: rgba(209, 206, 206, 0.589);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
 
 </style>
 
