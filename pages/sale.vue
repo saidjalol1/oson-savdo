@@ -530,7 +530,7 @@ onMounted( async () =>{
 
                 <div class=" w-full gap-4 p-5">
                   <div class="sale_body">
-                    <div v-for="sale in paginatedSales" @click="detailToggle(sale)" class="salee shadow-lg p-2 cursor-pointer">
+                    <div v-for="sale in paginatedSales.reverse()" @click="detailToggle(sale)" class="salee shadow-lg p-2 cursor-pointer">
                       <div  class="sum flex justify-between items-center">
                         <span class="text-xl font-bold ">{{ formatNumber(sale.total) }}</span>
                         <span 
