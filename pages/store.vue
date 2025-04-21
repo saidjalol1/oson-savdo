@@ -182,6 +182,10 @@ const printCode = (image, id) => {
 };
 
 
+const update =async () =>{
+  await categoriesGet()
+}
+
 onMounted( async () =>{
     await categoriesGet()
     await productsGet()
@@ -281,7 +285,7 @@ onMounted( async () =>{
         <ProductDetail :menu2="menu2" :product="selectedProduct" :categories="categories"  @productUpdated="handleProductUpdated"  @detailToggle="detailToggle"/>
         </div>
     </div>
-    <StoreModal :modal="modal_status" :modal2="modal_status2" :store_id="store?.id" :categories="categories" :products="store?.products" @closeModal="closeModall" @closeModal2="closeModal2"/>
+    <StoreModal :modal="modal_status" :modal2="modal_status2" :store_id="store?.id" :categories="categories" :products="store?.products" @closeModal="closeModall" @closeModal2="closeModal2" @update="update"/>
 </template>
 <style scoped>
 .page{

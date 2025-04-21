@@ -3,6 +3,8 @@
 const props = defineProps({
     menuStatus : Boolean,
 })
+const userRole = ref("")
+const menuItems = ref([])
 
 const svgIcons  = [
     `
@@ -33,11 +35,6 @@ const svgIcons  = [
         </svg>
     `,
     `
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="black" class="bi bi-pie-chart" viewBox="0 0 16 16">
-            <path d="M7.5 1.018a7 7 0 0 0-4.79 11.566L7.5 7.793zm1 0V7.5h6.482A7 7 0 0 0 8.5 1.018M14.982 8.5H8.207l-4.79 4.79A7 7 0 0 0 14.982 8.5M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8"/>
-        </svg>
-    `,
-    `
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="black" class="bi bi-people" viewBox="0 0 16 16">
             <path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1zm-7.978-1L7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002-.014.002zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4m3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0M6.936 9.28a6 6 0 0 0-1.23-.247A7 7 0 0 0 5 9c-4 0-5 3-5 4q0 1 1 1h4.216A2.24 2.24 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816M4.92 10A5.5 5.5 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275ZM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0m3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4"/>
         </svg>
@@ -49,11 +46,6 @@ const svgIcons  = [
             <path d="M4.5 2a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm3 0a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm3 0a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm-6 3a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm3 0a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm3 0a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm-6 3a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm3 0a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5z"/>
         </svg>
     `,
-    `
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="black" class="bi bi-arrow-left-right" viewBox="0 0 16 16">
-            <path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5m14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5"/>
-        </svg>
-    `
 ]
 const menus = [
     "Bosh sahifa",
@@ -61,16 +53,15 @@ const menus = [
     "Sotuv",
     "Hisobotlar",
     "Ta'minot",
-    "Diagram",
     "Foydalanuvchilar",
-    "Xarajatlar",
-    "Tranzaksiyalar"
+    "Xaridlar",
+
 ]
 
-const menuItems = svgIcons.map((icon, index) => ({
-  icon,
-  title: menus[index] || "Untitled"
-}));
+const menuPermissions = {
+    admin: [true, true, true, true, true, true, true, true, true], // All menus enabled
+    staff: [true, false, true, false, false, false, false, true, false] // Only first 3 menus enabled
+};
 
 const convertLetter = (text) => {
     let title = text.toLowerCase().replace(/ /g, "_");
@@ -81,25 +72,46 @@ const convertLetter = (text) => {
         "sotuv": "/sale",
         "hisobotlar": "/reports",
         "ta'minot": "/product-reports",
-        "diagram": "/diagram",
         "foydalanuvchilar": "/users",
-        "xarajatlar": "/expenses",
-        "tarnsfers": "/transfers"
+        "xaridlar": "/expenses",
     };
 
-    return routes[title] || title; // Return the matched route or the transformed text if not found
+    return routes[title] || title;
 };
 
+const setupMenuItems = () => {
+    menuItems.value = svgIcons.map((icon, index) => ({
+        icon,
+        title: menus[index] || "Untitled",
+        allowed: menuPermissions[userRole.value] ? menuPermissions[userRole.value][index] : false
+    })).filter(item => item.allowed); // Filter out items that aren't allowed
+};
+
+onMounted(() => {
+    userRole.value = localStorage.getItem("role") || "staff"; // Default to staff if no role
+    setupMenuItems();
+});
+
+// Watch for changes in userRole
+watch(userRole, () => {
+    setupMenuItems();
+});
 </script>
 <template>
-    <div v-if="menuStatus" class="sidebar flex flex-col h-[calc(100vh-65px)]" >
+    <div v-if="menuStatus" class="sidebar flex flex-col h-[calc(100vh-65px)]">
         <div class="logo flex items-center justify-center px-4 py-2 font-black text-center text-3xl mt-1">
             Oson savdo
         </div>
         <hr class="pb-4 border-none">
-        <NuxtLink  active-class="active" class="item flex  justify-start items-center px-5 py-4 gap-4" v-for="(item, index) in menuItems" :to="convertLetter(item.title)" :key="index">
-            <div class="icon"  v-html="item.icon"></div>
-            <div class="title" >{{ item.title }}</div>
+        <NuxtLink 
+            v-for="(item, index) in menuItems" 
+            :key="index"
+            active-class="active" 
+            class="item flex justify-start items-center px-5 py-4 gap-4" 
+            :to="convertLetter(item.title)"
+        >
+            <div class="icon" v-html="item.icon"></div>
+            <div class="title">{{ item.title }}</div>
         </NuxtLink>
     </div>
 </template>

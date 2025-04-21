@@ -2,11 +2,11 @@
 import { ref } from 'vue';
 
 
+const config = useRuntimeConfig()
 const menuStatus = ref(true)
 const toggleMenu = () =>{
     menuStatus.value = !menuStatus.value
 }
-
 
 
 </script>
@@ -18,10 +18,11 @@ const toggleMenu = () =>{
         <div class="w-full">
             <Header @menuToggle="toggleMenu"/>
             <div class="page_body w-full h-[calc(100vh-65px)]">
-            <div class="page_title text-2xl font-bold px-3 bg-white py-3">
-                Bosh sahifa
-            </div>
-           
+                <div class="page_title text-2xl font-bold px-3 bg-white py-3">Bosh sahifa</div>
+                <Expance />
+                <div class="px-5">
+                    <ChartComponent />
+                </div>
         </div>
         </div>
     </div>

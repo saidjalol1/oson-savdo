@@ -1,5 +1,5 @@
 <script setup>
-import { formatNumber } from 'chart.js/helpers'
+
 
 
 const menuStatus = ref(true)
@@ -110,6 +110,28 @@ const toggleMenu = () =>{
 const update = async () =>{
   await providersGet()
 }
+
+const formatDateTime = (dateStr) => {
+  const date = new Date(dateStr)
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  })
+}
+
+
+function formatNumber(number, decimals = 2) {
+  return number.toLocaleString(undefined, { 
+    minimumFractionDigits: decimals, 
+    maximumFractionDigits: decimals 
+  });
+}
+
+
 
 onMounted(async () =>{
     await providersGet()

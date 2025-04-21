@@ -63,6 +63,7 @@ const filteredSales = computed(() => {
         );
     }
     
+
     if (selectedDate.value) {
         const filterDate = new Date(selectedDate.value).toDateString();
         filtered = filtered.filter(sale => {

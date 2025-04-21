@@ -45,10 +45,12 @@
     }
 
     const res = await response.json()
-    console.log(res);
+    
+    console.log(res.user["role"]);
     
     delay_load()
     localStorage.setItem("tokenOson", res["access_token"])
+    localStorage.setItem("role", res.user["role"])
     route.push("/")
 
   } catch (error) {

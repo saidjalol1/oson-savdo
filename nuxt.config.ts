@@ -14,9 +14,15 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase: 'https://backendtest.muvaffaqiyatsirlari.uz',
+      apiBase: 'http://127.0.0.1:8000',
     },
   },
 
   modules: ['@nuxt/image'],
+  
+  // Add build transpilation for chart.js
+  build: {
+    transpile: ['chart.js']
+  }
+
 })

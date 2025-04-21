@@ -27,6 +27,8 @@ const provider = ref('yoq')
 const providers = ref([])
 const provider_modal =ref(false)
 const newProvider = ref({})
+const emit = defineEmits(['closeModal', 'closeModal2', "update"]);
+
 
 const providersGet = async () => {
   try {
@@ -107,7 +109,8 @@ const ctgAdd = async () => {
         error.value = data.warning
         error_modal.value = true
     }else{
-        
+        emit("update")
+        category_modal.value = false
     }
   } catch (error) {
     console.log(error);
@@ -179,7 +182,8 @@ const ctgUpdate = async () => {
         error.value = data.warning
         error_modal.value = true
     }else{
-        window.location.reload()
+      emit("update")
+      editCategoryModal.value = false
     }
   } catch (error) {
     console.log(error);
@@ -307,7 +311,7 @@ const scannedProduct = ()=>{
     
 }
 
-const emit = defineEmits(['closeModal', 'closeModal2']);
+
 
 const close = () => {
     emit('closeModal');
