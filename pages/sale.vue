@@ -884,6 +884,7 @@ onMounted( async () =>{
     justify-content: start;
     align-items: start;
     overflow-y: auto;
+    gap: 10px;
 }
 
 .salee{
