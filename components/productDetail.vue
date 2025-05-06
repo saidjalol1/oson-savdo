@@ -198,28 +198,32 @@ function formatNumber(number, decimals = 2) {
                         <th class="py-3 px-4 text-center">Qoldiq (Miqdor)</th>
                     </tr>
                 </thead>
-                <tbody>           <!-- Row -->
-                    <tr v-for="product in product.store_reports_in" :key="product.index" class=" bg-white hover:bg-gray-100 cursor-pointer">
-                        <td class="py-4 px-4 flex items-center gap-3">
-                            <span class="text-gray-800 font-bold">{{ convertDate(product) }}</span>
-                        </td>
-                        <td  class="text-center">
-                            <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
-                                {{ product?.quantity_in }}
-                            </span>
-                        </td>
-                        <td  class="text-center">
-                            <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
-                                {{  formatNumber(product?.sale_price)}}
-                            </span>
-                        </td>
-                        <td  class="text-center">
-                            <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
-                                {{ formatNumber(product?.price) }}
-                            </span>
-                        </td>
-                        <td class="text-center" ><span class="bg-red-100 text-black-600 px-3 py-1 ">{{ product?.quantity_left }} </span></td>
-                    </tr>
+                <tbody>   
+                    <template v-for="product in product.store_reports_in"  :key="product.index">
+                        <tr v-if="product.quantity_left > 0" class=" bg-white hover:bg-gray-100 cursor-pointer">
+                       
+                            <td class="py-4 px-4 flex items-center gap-3">
+                                <span class="text-gray-800 font-bold">{{ convertDate(product) }}</span>
+                            </td>
+                            <td  class="text-center">
+                                <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
+                                    {{ product?.quantity_in }}
+                                </span>
+                            </td>
+                            <td  class="text-center">
+                                <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
+                                    {{  formatNumber(product?.sale_price)}}
+                                </span>
+                            </td>
+                            <td  class="text-center">
+                                <span class="text-black-600 flex gap-3 font-bold items-center justify-center px-3 py-1">
+                                    {{ formatNumber(product?.price) }}
+                                </span>
+                            </td>
+                            <td class="text-center" ><span class="bg-red-100 text-black-600 px-3 py-1 ">{{ product?.quantity_left }} </span></td>
+                        </tr>
+                    </template>        <!-- Row -->
+                    
                 </tbody>
             </table>
         </div>

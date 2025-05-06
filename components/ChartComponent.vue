@@ -64,6 +64,10 @@
     <div v-if="error" class="error-message">
       {{ error }}
     </div>
+
+    <div v-if="salesData.length === 0 && !loading" class="no-data-message">
+      No sales data available for selected date range
+    </div>
   </div>
 </template>
 
@@ -72,7 +76,7 @@ import { ref, onMounted, watch } from 'vue'
 import { Chart } from 'chart.js/auto'
 
 // Chart reference
-const config  = useRuntimeConfig()
+const config = useRuntimeConfig()
 const chartCanvas = ref(null)
 let chartInstance = null
 
@@ -81,13 +85,11 @@ const salesData = ref([])
 const loading = ref(false)
 const error = ref(null)
 
-
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric' 
-  })
+  const date = new Date(dateString)
+  return `${date.getMonth()+1}/${date.getDate()}`
 }
+
 const getDateDaysAgo = (days) => {
   const date = new Date()
   date.setDate(date.getDate() - days)
@@ -98,13 +100,12 @@ const formatForInput = (date) => {
   return date.toISOString().split('T')[0]
 }
 
-// To this:
 const filters = ref({
   startDate: getDateDaysAgo(30),
   endDate: formatForInput(new Date()),
   paymentTypes: ['card', 'cash', 'debt']
 })
-// Fetch sales data from API
+
 const fetchSalesData = async () => {
   loading.value = true
   error.value = null
@@ -114,7 +115,9 @@ const fetchSalesData = async () => {
     if (filters.value.startDate) queryParams.append('start_date', filters.value.startDate)
     if (filters.value.endDate) queryParams.append('end_date', filters.value.endDate)
     
-    const response = await fetch(`${config.public.apiBase}/stores/sales-summary?${queryParams.toString()}`,{
+    console.log('Fetching data with params:', queryParams.toString())
+    
+    const response = await fetch(`${config.public.apiBase}/stores/sales-summary?${queryParams.toString()}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -126,171 +129,181 @@ const fetchSalesData = async () => {
       throw new Error(`Failed to fetch sales data: ${response.statusText}`)
     }
     
-    salesData.value = await response.json()
+    const data = await response.json()
+    console.log('Received data:', data)
+    salesData.value = Array.isArray(data) ? [...data] : []
+    
     updateChart()
   } catch (err) {
     error.value = err.message
     console.error('Error fetching sales data:', err)
+    salesData.value = []
+    if (chartInstance) {
+      chartInstance.destroy()
+      chartInstance = null
+    }
   } finally {
     loading.value = false
   }
 }
 
-// Update chart with current data and filters
 const updateChart = () => {
-  if (!salesData.value.length) return
-  
-  const dates = salesData.value.map(item => formatDate(item.date))
-  
+  // Clear any existing chart
+  if (chartInstance) {
+    chartInstance.destroy()
+    chartInstance = null
+  }
+
+  // Validate data and canvas
+  if (!salesData.value || !Array.isArray(salesData.value)) {
+    console.error('Invalid sales data format')
+    return
+  }
+
+  if (!chartCanvas.value) {
+    console.error('Chart canvas not available')
+    return
+  }
+
+  // Handle empty data
+  if (salesData.value.length === 0) {
+    console.log('No data to display')
+    return
+  }
+
+  const dates = salesData.value.map(item => {
+    try {
+      return formatDate(item.date)
+    } catch {
+      console.error('Invalid date format in item:', item)
+      return 'Invalid Date'
+    }
+  })
+
   const datasets = []
-  
-  if (filters.value.paymentTypes.includes('card')) {
+  const paymentTypesToShow = filters.value.paymentTypes.length 
+    ? filters.value.paymentTypes 
+    : ['card', 'cash', 'debt']
+
+  if (paymentTypesToShow.includes('card')) {
     datasets.push({
       label: 'Karta',
-      data: salesData.value.map(item => item.card_payments),
+      data: salesData.value.map(item => item.card_payments || 0),
       backgroundColor: '#4e73df',
       borderColor: '#2e59d9',
       borderWidth: 1
     })
   }
   
-  if (filters.value.paymentTypes.includes('cash')) {
+  if (paymentTypesToShow.includes('cash')) {
     datasets.push({
       label: 'Naqd',
-      data: salesData.value.map(item => item.cash_payments),
+      data: salesData.value.map(item => item.cash_payments || 0),
       backgroundColor: '#1cc88a',
       borderColor: '#17a673',
       borderWidth: 1
     })
   }
   
-  if (filters.value.paymentTypes.includes('debt')) {
+  if (paymentTypesToShow.includes('debt')) {
     datasets.push({
       label: 'Nasiya',
-      data: salesData.value.map(item => item.debt_payments),
+      data: salesData.value.map(item => item.debt_payments || 0),
       backgroundColor: '#e74a3b',
       borderColor: '#be2617',
       borderWidth: 1
     })
   }
-  
-  // If no payment types selected, show all
-  if (datasets.length === 0) {
-    datasets.push(
-      {
-        label: 'Karta',
-        data: salesData.value.map(item => item.card_payments),
-        backgroundColor: '#4e73df',
-        borderColor: '#2e59d9',
-        borderWidth: 1
-      },
-      {
-        label: 'Naqd',
-        data: salesData.value.map(item => item.cash_payments),
-        backgroundColor: '#1cc88a',
-        borderColor: '#17a673',
-        borderWidth: 1
-      },
-      {
-        label: 'Nasiya',
-        data: salesData.value.map(item => item.debt_payments),
-        backgroundColor: '#e74a3b',
-        borderColor: '#be2617',
-        borderWidth: 1
-      }
-    )
-    filters.value.paymentTypes = ['Karta', 'Naqd', 'Nasiya']
-  }
-  
-  // Destroy previous chart instance if exists
-  if (chartInstance) {
-    chartInstance.destroy()
-  }
-  
+
   // Create new chart
-  const ctx = chartCanvas.value.getContext('2d')
-  chartInstance = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: dates,
-      datasets: datasets
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: {
-            boxWidth: 12,
-            padding: 20,
-            usePointStyle: true
-          }
-        },
-        tooltip: {
-          mode: 'index',
-          intersect: false,
-          callbacks: {
-            label: function(context) {
-              let label = context.dataset.label || ''
-              if (label) {
-                label += ': '
+  try {
+    const ctx = chartCanvas.value.getContext('2d')
+    if (!ctx) throw new Error('Could not get canvas context')
+    
+    chartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: dates,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              boxWidth: 12,
+              padding: 20,
+              usePointStyle: true
+            }
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || ''
+                if (label) {
+                  label += ': '
+                }
+                label += new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD'
+                }).format(context.raw)
+                return label
               }
-              label += new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD'
-              }).format(context.raw)
-              return label
             }
-          }
-        }
-      },
-      scales: {
-        x: {
-          stacked: true,
-          grid: {
-            display: false
           }
         },
-        y: {
-          stacked: true,
-          beginAtZero: true,
-          ticks: {
-            callback: function(value) {
-              return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-                maximumFractionDigits: 0
-              }).format(value)
+        scales: {
+          x: {
+            stacked: true,
+            grid: {
+              display: false
+            }
+          },
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                  maximumFractionDigits: 0
+                }).format(value)
+              }
             }
           }
+        },
+        interaction: {
+          mode: 'nearest',
+          axis: 'x',
+          intersect: false
         }
-      },
-      interaction: {
-        mode: 'nearest',
-        axis: 'x',
-        intersect: false
       }
-    }
-  })
+    })
+  } catch (err) {
+    console.error('Error creating chart:', err)
+    error.value = 'Failed to display chart'
+  }
 }
 
-// Initialize component
 onMounted(() => {
   fetchSalesData()
 })
 
-// Watch for date changes
 watch(
   () => [filters.value.startDate, filters.value.endDate],
   () => {
     fetchSalesData()
-  }
+  },
+  { immediate: false }
 )
 </script>
 
 <style scoped>
-/* Your existing styles remain the same */
 .sales-chart-container {
   position: relative;
   background: white;
@@ -406,5 +419,15 @@ watch(
   border-radius: 0.35rem;
   margin-top: 1rem;
   border: 1px solid #f5c6cb;
+}
+
+.no-data-message {
+  padding: 1rem;
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border-radius: 0.35rem;
+  margin-top: 1rem;
+  border: 1px solid #e9ecef;
+  text-align: center;
 }
 </style>

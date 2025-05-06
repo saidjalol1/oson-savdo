@@ -296,6 +296,7 @@ const submitSale = async () => {
       data.value = sale_obj
       printCheck()
       alert("Sotuv muvaffaqiyatli amalga oshirildi!");
+      await salesget()
         // window.location.reload()
       toggleSaleModal();
       console.log(data.value);
@@ -303,19 +304,6 @@ const submitSale = async () => {
    
   } catch (error) {
     console.error("Sotuvda xatolik:", error);
-    console.log(JSON.stringify({
-        store_id: saleObject.value.store_id,
-        card_payment: saleObject.value.card_payment,
-        cash_payment: saleObject.value.cash_payment,
-        debt_payment: saleObject.value.debt_payment,
-        total: saleObject.value.total,
-        debt: saleObject.value.total - saleObject.value.debt_payment,
-        items: saleObject.value.items.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          report_id : item.report_id
-        }))
-      }));
     
     // User-friendly error messages
     let userMessage = "Sotuvni amalga oshirishda xatolik";
@@ -533,14 +521,9 @@ onMounted( async () =>{
                     <div v-for="sale in paginatedSales.reverse()" @click="detailToggle(sale)" class="salee shadow-lg p-2 cursor-pointer">
                       <div  class="sum flex justify-between items-center">
                         <span class="text-xl font-bold ">{{ formatNumber(sale.total) }}</span>
+                    
                         <span 
-                        v-if="sale.debt > 0"  
-                        class="bg-red-500 text-white rounded-full px-2"
-                        >
-                          Qarz: {{ formatNumber(sale.debt) }}
-                        </span>
-                        <span 
-                          v-else-if="sale.cash_payment > sale.card_payment"  
+                          v-if="sale.cash_payment > sale.card_payment"  
                           class="bg-green-400 text-white rounded-full px-2"
                           >
                           Naqd
@@ -551,9 +534,15 @@ onMounted( async () =>{
                           >
                           Karta
                         </span>
+                        <span 
+                            v-else-if="Number(sale?.cash_payment + sale?.card_payment) !== sale?.total"  
+                            class="bg-red-500 text-white rounded-full px-2"
+                          >
+                          Qarz: {{ formatNumber(sale.debt - sale.debt_payment) }}
+                        </span>
                       </div>
                       <div class="sum text-gray-600">{{ formatDateTime(sale.date_added) }}</div>
-                      <div v-if="sale.debt > 0" class="sum text-white mt-2 bg-red-500 px-2 rounded-full">{{ sale.client_name }}</div>
+                      <div v-if="sale.client_name" class="sum text-white mt-2 bg-red-500 px-2 rounded-full">{{ sale.client_name }}</div>
                     </div>
                   </div>
                   <div class="pagination flex justify-center items-center gap-2 py-4 ">
@@ -773,14 +762,13 @@ onMounted( async () =>{
       <div class="cheque" v-if="foundProduct && availableReports.length > 0">
         <div>Partiya tanlang *</div>
         <div class="flex flex-col gap-2 py-4">
-          <div v-for="report in availableReports" :key="report.id" 
-               @click="selectedReport = report"
-               :class="['p-3 border rounded cursor-pointer', selectedReport?.id === report.id ? 'bg-blue-100 border-blue-500' : '']">
-            <div class="flex justify-between">
-              <span>Narx: {{ formatNumber(report.sale_price) }}</span>
-              <span>Mavjud: {{ report.quantity_left }}</span>
+          <div v-for="report in availableReports" :key="report.id" >
+            <div @click="selectedReport = report" v-if="report.quantity_left > 0"
+            :class="['p-3 border rounded cursor-pointer flex justify-between', selectedReport?.id === report.id ? 'bg-yellow-100 border-yellow-500' : '']">
+              <div>Narx: {{ formatNumber(report.sale_price) }}</div>
+              <div>Mavjud: {{ report.quantity_left }}</div>
+              <div >Sana: {{ new Date(report.date_added).toLocaleDateString() }}</div>
             </div>
-            <div>Sana: {{ new Date(report.date_added).toLocaleDateString() }}</div>
           </div>
         </div>
       </div>

@@ -260,7 +260,7 @@ const productFill = async () => {
         id: parseInt(foundProduct.value.id),
         store_id: parseInt(props.store_id),
         provider_id: parseInt(newProductTransaction.value.provider_id),
-        payment: parseInt(newProductTransaction.value.payment),
+        payment: 0,
         quantity_in: parseInt(newProductTransaction.value.quantity_in),
         price: parseFloat(newProductTransaction.value.price),
         sale_price: parseFloat(newProductTransaction.value.sale_price),
@@ -526,10 +526,7 @@ onMounted( async () =>{
                     </div>
                     
                 
-                    <div v-if="provider === 'ha'" class="form-group">
-                        <label for="product-name">Ta'minotchiga to'lov *</label>
-                        <input type="number" v-model="newProductTransaction.payment" id="product-name" required>
-                    </div>
+                
 
                     <div  class="buttons">
                         <button type="submit" class="submit-btn">Saqlash</button>
