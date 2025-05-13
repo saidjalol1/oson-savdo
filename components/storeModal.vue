@@ -259,9 +259,9 @@ const productFill = async () => {
       body: JSON.stringify({
         id: parseInt(foundProduct.value.id),
         store_id: parseInt(props.store_id),
-        provider_id: parseInt(newProductTransaction.value.provider_id),
+        provider_id: parseFloat(newProductTransaction.value.provider_id),
         payment: 0,
-        quantity_in: parseInt(newProductTransaction.value.quantity_in),
+        quantity_in: parseFloat(newProductTransaction.value.quantity_in),
         price: parseFloat(newProductTransaction.value.price),
         sale_price: parseFloat(newProductTransaction.value.sale_price),
       }),
@@ -480,7 +480,8 @@ onMounted( async () =>{
 
                     <div class="form-group">
                         <label for="product-name">Miqdori *</label>
-                        <input type="number" v-model="newProductTransaction.quantity_in" id="product-name" required>
+                        <input type="number" v-model="newProductTransaction.quantity_in" id="product-name" step="0.1" min="1" required>
+                        <small class="form-text text-muted">Foydalaniladigan format: 1.5 / 1 kabi sonlar , minumum 1</small>
                     </div>
 
                     <div class="form-group">

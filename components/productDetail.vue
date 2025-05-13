@@ -200,7 +200,7 @@ function formatNumber(number, decimals = 2) {
                 </thead>
                 <tbody>   
                     <template v-for="product in product.store_reports_in"  :key="product.index">
-                        <tr v-if="product.quantity_left > 0" class=" bg-white hover:bg-gray-100 cursor-pointer">
+                        <tr v-if="product.quantity_left > 0.1" class=" bg-white hover:bg-gray-100 cursor-pointer">
                        
                             <td class="py-4 px-4 flex items-center gap-3">
                                 <span class="text-gray-800 font-bold">{{ convertDate(product) }}</span>

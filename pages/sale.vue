@@ -145,7 +145,7 @@ const addToSale = () => {
     saleObject.value.items.push({
       product_id: foundProduct.value.id,
       report_id: selectedReport.value.id,
-      quantity: parseInt(newItem.value.quantity),
+      quantity: parseFloat(newItem.value.quantity),
       price: selectedReport.value.sale_price // Store the actual price from selected report
     });
     saleObject.value.total += itemTotal;
@@ -784,10 +784,10 @@ onMounted( async () =>{
             </span>
         </div>
         <div class="flex gap-2 py-4 justify-center items-center">
-          <input v-model.number="newItem.quantity" type="number" class="w-full py-3 px-3" 
+          <input v-model.number="newItem.quantity" type="number" min="0.1" class="w-full py-3 px-3" 
                  :max="selectedReport?.quantity_left || 0">
-          
-        </div>
+          <small class="form-text text-muted">Foydalaniladigan format: 1.5 / 1 kabi sonlar, minimum 0.1</small>
+        </div>  
       </div>
       
       <div class="cheque" v-if="selectedReport && newItem.quantity > 0">
