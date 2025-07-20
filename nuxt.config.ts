@@ -14,7 +14,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase: 'https://backendtest.muvaffaqiyatsirlari.uz',
+      apiBase: 'https://oson-back-end.onrender.com',
     },
   },
 
