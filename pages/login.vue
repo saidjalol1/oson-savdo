@@ -25,7 +25,7 @@
     formData.append('username', loginData.value.username);
     formData.append('password', loginData.value.password);
   try {
-    const response = await fetch(`${config.public.apiBase}/token`, {
+    const response = await fetch(`${config.public.apiBase}/token/`, {
       method: "POST",
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
