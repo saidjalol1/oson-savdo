@@ -14,7 +14,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase: 'https://medical-berna-privet-65c89d59.koyeb.app',
+      apiBase: 'https://oson-savdo.vercel.app',
     },
   },
 
