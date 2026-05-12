@@ -14,7 +14,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase: 'https://oson-savdo.vercel.app',
+      apiBase: 'https://oson-savdo.vercel.app/',
     },
   },
 
